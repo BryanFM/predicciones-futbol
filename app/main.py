@@ -92,6 +92,12 @@ def _run_migrations():
     from app.phone_policy import enforce_unique_phone
 
     is_pg = "postgresql" in str(engine.url)
+
+    if is_pg:
+        # ALTER TYPE ADD VALUE requiere autocommit (no puede correr en transacción)
+        with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
+            conn.execute(text("ALTER TYPE predictiontype ADD VALUE IF NOT EXISTS 'SCORE';"))
+
     with engine.begin() as conn:
         if is_pg:
             conn.execute(text(
