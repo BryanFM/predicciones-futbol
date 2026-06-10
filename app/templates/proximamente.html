@@ -63,12 +63,13 @@
       </span>
       {% endif %}
     </h3>
-    <ol class="leaderboard-list">
+    <ol class="leaderboard-list" data-lazy-list data-lazy-batch="10">
       {% for row in leaderboard %}
-      <li class="leaderboard-item {% if current_user and row.user.id == current_user.id %}is-me{% endif %}">
+      <li class="leaderboard-item {% if current_user and row.user.id == current_user.id %}is-me{% endif %}{% if loop.index0 >= 10 %} lazy-deferred-row{% endif %}"
+          {% if loop.index0 >= 10 %}aria-hidden="true"{% endif %}>
         <span class="lb-rank">{{ loop.index }}</span>
         <div class="lb-user">
-          {% if row.user.picture %}<img src="{{ row.user.picture }}" alt="" class="avatar avatar-sm">{% endif %}
+          {% if row.user.picture %}<img data-src="{{ row.user.picture }}" alt="" class="avatar avatar-sm" width="32" height="32">{% endif %}
           <span>{{ row.user.name.split()[0] }}</span>
         </div>
         <span class="lb-points">{{ row.total }} HP</span>

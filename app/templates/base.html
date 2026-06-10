@@ -19,7 +19,7 @@
     })();
   </script>
 </head>
-<body>
+<body class="layout-sticky-footer">
   <header class="header">
     <div class="container header-inner">
       <a href="/" class="brand">
@@ -154,6 +154,21 @@
       </nav>
     </div>
   </footer>
+  <aside id="cookie-consent" class="cookie-consent" role="dialog" aria-labelledby="cookie-consent-title" aria-live="polite" hidden>
+    <div class="cookie-consent-inner container">
+      <div class="cookie-consent-text">
+        <p id="cookie-consent-title" class="cookie-consent-title">🍪 Uso de cookies</p>
+        <p class="cookie-consent-desc">
+          Usamos una cookie técnica de sesión (<code>hf_session</code>) y almacenamiento local para tu preferencia de tema.
+          No usamos cookies de publicidad ni seguimiento.
+          <a href="/privacidad#cookies">Más información</a>.
+        </p>
+      </div>
+      <button type="button" class="btn btn-primary btn-sm cookie-consent-accept" id="cookie-consent-accept">Aceptar</button>
+    </div>
+  </aside>
+  <script src="{{ static_url('lazyload.js') }}" defer></script>
+  <script src="{{ static_url('cookie-consent.js') }}" defer></script>
   <script>
   (function () {
     const toggle = document.getElementById('theme-toggle');

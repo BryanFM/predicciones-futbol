@@ -12,7 +12,7 @@
 
 {% if not current_user %}
 <section class="panel login-cta">
-  <img src="/static/hamster.png" alt="Hamster Fijas" class="cta-img">
+  <img data-src="/static/hamster.png" alt="Hamster Fijas" class="cta-img" width="120" height="120">
   <div>
     <h2>¡Registra tus fijas!</h2>
     <p>Inicia sesión con Google para agregar tus predicciones y competir con tus amigos.</p>
@@ -197,7 +197,7 @@
   {% if not matches %}
   <div class="panel empty-state"><p>No hay partidos con estos filtros.</p></div>
   {% else %}
-  <div class="match-list{% if SHOW_MATCH_HAMSTER_GIFS %} match-list-with-whistle{% endif %}">
+  <div class="match-list{% if SHOW_MATCH_HAMSTER_GIFS %} match-list-with-whistle{% endif %}" data-lazy-list data-lazy-batch="12">
     <div class="match-list-head">
       {% if SHOW_MATCH_HAMSTER_GIFS %}<span class="head-whistle" aria-hidden="true"></span>{% endif %}
       <span>Fecha</span>
@@ -214,8 +214,9 @@
     {% set score_pred = match_user_score(match, current_user) %}
     {% set has_mine = user_has_predictions(match, current_user) %}
     {% set outcome = match_outcome_stats.get(match.id, {}) %}
-    <div class="match-row status-{{ match.predictions_status }} {% if not has_mine %}match-row-empty{% endif %}"
+    <div class="match-row status-{{ match.predictions_status }} {% if not has_mine %}match-row-empty{% endif %}{% if loop.index0 >= 12 %} lazy-deferred{% endif %}"
          role="button" tabindex="0"
+         {% if loop.index0 >= 12 %}aria-hidden="true"{% endif %}
          data-match-id="{{ match.id }}"
          data-home="{{ match.home_team }}"
          data-away="{{ match.away_team }}"
@@ -241,7 +242,7 @@
          {% endif %}>
       {% if SHOW_MATCH_HAMSTER_GIFS %}
       <div class="match-whistle" aria-hidden="true">
-        <img src="{{ match_hamster_gif(match, current_user) }}" alt="" class="match-whistle-gif" width="44" height="44" loading="lazy">
+        <img data-src="{{ match_hamster_gif(match, current_user) }}" alt="" class="match-whistle-gif" width="44" height="44">
       </div>
       {% endif %}
       <div class="match-row-date">

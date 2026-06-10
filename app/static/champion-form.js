@@ -24,7 +24,7 @@
 
   function flagMarkup(team, flagUrl) {
     if (flagUrl) {
-      return `<img src="${flagUrl}" alt="" class="team-flag sm" loading="lazy" width="28" height="21">`;
+      return `<img data-src="${flagUrl}" alt="" class="team-flag sm" width="28" height="21">`;
     }
     return `<span class="team-badge sm">${team.slice(0, 2).toUpperCase()}</span>`;
   }
@@ -42,6 +42,7 @@
       return;
     }
     headerPick.innerHTML = `${flagMarkup(team, flagUrl || '')}<strong>${team}</strong>`;
+    if (window.hfLazyLoad) window.hfLazyLoad.scan(headerPick);
   }
 
   function collapsePanel() {
