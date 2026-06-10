@@ -34,12 +34,30 @@ templates = Jinja2Templates(directory=BASE_DIR / "templates")
 @app.on_event("startup")
 def on_startup():
     Base.metadata.create_all(bind=engine)
+    _run_migrations()
     db = next(get_db())
     try:
         from app.services import seed_database
         seed_database(db)
     finally:
         db.close()
+
+
+def _run_migrations():
+    from sqlalchemy import text
+    is_pg = "postgresql" in str(engine.url)
+    with engine.begin() as conn:
+        if is_pg:
+            conn.execute(text(
+                "ALTER TABLE predictions ADD COLUMN IF NOT EXISTS user_id INTEGER"
+                " REFERENCES users(id) ON DELETE SET NULL;"
+            ))
+        else:
+            cols = [row[1] for row in conn.execute(text("PRAGMA table_info(predictions)"))]
+            if "user_id" not in cols:
+                conn.execute(text(
+                    "ALTER TABLE predictions ADD COLUMN user_id INTEGER REFERENCES users(id);"
+                ))
 
 
 def prediction_label(p: Prediction) -> str:
