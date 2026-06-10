@@ -1,3 +1,4 @@
+import os
 from typing import Optional
 
 from datetime import datetime
@@ -8,14 +9,24 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session, joinedload
+from starlette.middleware.sessions import SessionMiddleware
 
+from app.auth import get_current_user, oauth, require_admin, require_login, upsert_user
 from app.database import Base, engine, get_db
-from app.models import Category, Match, Prediction, PredictionResult, PredictionType
-from app.services import get_stats, reevaluate_match_predictions, seed_database
+from app.models import Category, Match, Prediction, PredictionResult, PredictionType, User
 
 BASE_DIR = Path(__file__).resolve().parent
 
-app = FastAPI(title="Predicciones Fútbol")
+app = FastAPI(title="Hamster Fijas")
+
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=os.environ.get("SECRET_KEY", "dev-secret-change-in-production"),
+    session_cookie="hf_session",
+    same_site="lax",
+    https_only=os.environ.get("HTTPS_ONLY", "false").lower() == "true",
+)
+
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
 
@@ -25,6 +36,7 @@ def on_startup():
     Base.metadata.create_all(bind=engine)
     db = next(get_db())
     try:
+        from app.services import seed_database
         seed_database(db)
     finally:
         db.close()
@@ -43,26 +55,65 @@ templates.env.globals["PredictionResult"] = PredictionResult
 templates.env.globals["PredictionType"] = PredictionType
 
 
+# ── Auth ────────────────────────────────────────────────────────────────────
+
+@app.get("/auth/login")
+async def auth_login(request: Request):
+    redirect_uri = request.url_for("auth_callback")
+    return await oauth.google.authorize_redirect(request, redirect_uri)
+
+
+@app.get("/auth/callback", name="auth_callback")
+async def auth_callback(request: Request, db: Session = Depends(get_db)):
+    token = await oauth.google.authorize_access_token(request)
+    info = token.get("userinfo") or await oauth.google.userinfo(token=token)
+    user = upsert_user(
+        db,
+        google_id=info["sub"],
+        email=info["email"],
+        name=info.get("name", info["email"]),
+        picture=info.get("picture", ""),
+    )
+    request.session["user_id"] = user.id
+    return RedirectResponse("/", status_code=303)
+
+
+@app.get("/auth/logout")
+def auth_logout(request: Request):
+    request.session.clear()
+    return RedirectResponse("/", status_code=303)
+
+
+# ── Pages ───────────────────────────────────────────────────────────────────
+
 @app.get("/", response_class=HTMLResponse)
-def home(request: Request, category_id: Optional[int] = None, db: Session = Depends(get_db)):
+def home(
+    request: Request,
+    category_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user),
+):
     categories = db.query(Category).order_by(Category.name).all()
     selected = category_id or (categories[0].id if categories else None)
 
     matches_query = (
         db.query(Match)
-        .options(joinedload(Match.predictions), joinedload(Match.category))
+        .options(joinedload(Match.predictions).joinedload(Prediction.user), joinedload(Match.category))
         .order_by(Match.match_date)
     )
     if selected:
         matches_query = matches_query.filter(Match.category_id == selected)
 
     matches = matches_query.all()
+
+    from app.services import get_stats
     stats = get_stats(db, selected)
 
     return templates.TemplateResponse(
         "index.html",
         {
             "request": request,
+            "current_user": current_user,
             "categories": categories,
             "selected_category_id": selected,
             "matches": matches,
@@ -71,18 +122,36 @@ def home(request: Request, category_id: Optional[int] = None, db: Session = Depe
     )
 
 
+@app.get("/proximamente", response_class=HTMLResponse)
+def proximamente(
+    request: Request,
+    current_user: Optional[User] = Depends(get_current_user),
+):
+    return templates.TemplateResponse("proximamente.html", {
+        "request": request,
+        "current_user": current_user,
+    })
+
+
+# ── Admin: Categories ────────────────────────────────────────────────────────
+
 @app.post("/categories")
-def create_category(name: str = Form(...), db: Session = Depends(get_db)):
+def create_category(
+    name: str = Form(...),
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
     name = name.strip()
     if not name:
         raise HTTPException(400, "Nombre requerido")
     if db.query(Category).filter(Category.name == name).first():
         raise HTTPException(400, "La categoría ya existe")
-    category = Category(name=name)
-    db.add(category)
+    db.add(Category(name=name))
     db.commit()
     return RedirectResponse("/", status_code=303)
 
+
+# ── Admin: Matches ───────────────────────────────────────────────────────────
 
 @app.post("/matches")
 def create_match(
@@ -93,6 +162,7 @@ def create_match(
     group_name: str = Form(""),
     venue: str = Form(""),
     db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
 ):
     parsed_date = match_date.strip()
     if len(parsed_date) == 16:
@@ -117,6 +187,7 @@ def update_score(
     home_score: int = Form(...),
     away_score: int = Form(...),
     db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
 ):
     match = db.query(Match).options(joinedload(Match.predictions)).get(match_id)
     if not match:
@@ -124,12 +195,17 @@ def update_score(
     match.home_score = home_score
     match.away_score = away_score
     db.commit()
+    from app.services import reevaluate_match_predictions
     reevaluate_match_predictions(db, match)
     return RedirectResponse(f"/?category_id={match.category_id}", status_code=303)
 
 
 @app.post("/matches/{match_id}/delete")
-def delete_match(match_id: int, db: Session = Depends(get_db)):
+def delete_match(
+    match_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
     match = db.get(Match, match_id)
     if not match:
         raise HTTPException(404)
@@ -138,6 +214,8 @@ def delete_match(match_id: int, db: Session = Depends(get_db)):
     db.commit()
     return RedirectResponse(f"/?category_id={category_id}", status_code=303)
 
+
+# ── Predictions (any logged-in user) ────────────────────────────────────────
 
 @app.post("/predictions")
 def create_prediction(
@@ -148,6 +226,7 @@ def create_prediction(
     over_under_pick: str = Form(""),
     notes: str = Form(""),
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_login),
 ):
     match = db.get(Match, match_id)
     if not match:
@@ -155,6 +234,7 @@ def create_prediction(
 
     prediction = Prediction(
         match_id=match_id,
+        user_id=current_user.id,
         type=PredictionType(type),
         double_chance=double_chance or None,
         over_under_line=over_under_line if type == "over_under" else None,
@@ -164,7 +244,6 @@ def create_prediction(
 
     if match.is_finished:
         from app.services import evaluate_prediction
-
         prediction.result = evaluate_prediction(prediction, match)
 
     db.add(prediction)
@@ -177,6 +256,7 @@ def set_prediction_result(
     prediction_id: int,
     result: str = Form(...),
     db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
 ):
     prediction = db.query(Prediction).options(joinedload(Prediction.match)).get(prediction_id)
     if not prediction:
@@ -187,10 +267,16 @@ def set_prediction_result(
 
 
 @app.post("/predictions/{prediction_id}/delete")
-def delete_prediction(prediction_id: int, db: Session = Depends(get_db)):
+def delete_prediction(
+    prediction_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_login),
+):
     prediction = db.query(Prediction).options(joinedload(Prediction.match)).get(prediction_id)
     if not prediction:
         raise HTTPException(404)
+    if not current_user.is_admin and prediction.user_id != current_user.id:
+        raise HTTPException(403, "No puedes eliminar predicciones ajenas")
     category_id = prediction.match.category_id
     db.delete(prediction)
     db.commit()

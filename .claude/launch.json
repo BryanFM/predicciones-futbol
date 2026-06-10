@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "predicciones-futbol",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["run.sh"],
+      "port": 8000
+    }
+  ]
+}

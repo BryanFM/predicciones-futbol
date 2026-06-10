@@ -24,13 +24,26 @@
   </div>
 </section>
 
+{% if not current_user %}
+<section class="panel login-cta">
+  <img src="/static/hamster.png" alt="Hamster Fijas" class="cta-img">
+  <div>
+    <h2>¡Registra tus fijas!</h2>
+    <p>Inicia sesión con Google para agregar tus predicciones y competir con tus amigos.</p>
+    <a href="/auth/login" class="btn btn-google">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      Entrar con Google
+    </a>
+  </div>
+</section>
+{% endif %}
+
+{% if current_user and current_user.is_admin %}
 <section class="panel">
   <h2>Categorías</h2>
   <div class="category-bar">
     {% for cat in categories %}
-    <a href="/?category_id={{ cat.id }}" class="chip {% if cat.id == selected_category_id %}active{% endif %}">
-      {{ cat.name }}
-    </a>
+    <a href="/?category_id={{ cat.id }}" class="chip {% if cat.id == selected_category_id %}active{% endif %}">{{ cat.name }}</a>
     {% endfor %}
   </div>
   <form class="inline-form" method="post" action="/categories">
@@ -43,31 +56,23 @@
   <h2>Nuevo partido</h2>
   <form class="grid-form" method="post" action="/matches">
     <input type="hidden" name="category_id" value="{{ selected_category_id }}">
-    <label>
-      Local
-      <input type="text" name="home_team" required placeholder="México">
-    </label>
-    <label>
-      Visitante
-      <input type="text" name="away_team" required placeholder="Brasil">
-    </label>
-    <label>
-      Fecha y hora
-      <input type="datetime-local" name="match_date" required>
-    </label>
-    <label>
-      Grupo
-      <input type="text" name="group_name" placeholder="A">
-    </label>
-    <label class="span-2">
-      Sede
-      <input type="text" name="venue" placeholder="Estadio Azteca">
-    </label>
-    <div class="span-2">
-      <button type="submit" class="btn btn-primary">Registrar partido</button>
-    </div>
+    <label>Local<input type="text" name="home_team" required placeholder="México"></label>
+    <label>Visitante<input type="text" name="away_team" required placeholder="Brasil"></label>
+    <label>Fecha y hora<input type="datetime-local" name="match_date" required></label>
+    <label>Grupo<input type="text" name="group_name" placeholder="A"></label>
+    <label class="span-2">Sede<input type="text" name="venue" placeholder="Estadio Azteca"></label>
+    <div class="span-2"><button type="submit" class="btn btn-primary">Registrar partido</button></div>
   </form>
 </section>
+{% else %}
+<section class="category-nav">
+  <div class="category-bar">
+    {% for cat in categories %}
+    <a href="/?category_id={{ cat.id }}" class="chip {% if cat.id == selected_category_id %}active{% endif %}">{{ cat.name }}</a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
 
 <section class="panel">
   <h2>Partidos {% if categories %}— {{ categories | selectattr('id', 'equalto', selected_category_id) | map(attribute='name') | first }}{% endif %}</h2>
@@ -84,9 +89,11 @@
         <time>{{ match.match_date.strftime('%d/%m/%Y %H:%M') }}</time>
         {% if match.venue %}<span class="venue">{{ match.venue }}</span>{% endif %}
       </div>
+      {% if current_user and current_user.is_admin %}
       <form method="post" action="/matches/{{ match.id }}/delete" onsubmit="return confirm('¿Eliminar partido y sus predicciones?')">
         <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
       </form>
+      {% endif %}
     </div>
 
     <div class="match-teams">
@@ -101,13 +108,15 @@
       <span class="team">{{ match.away_team }}</span>
     </div>
 
+    {% if current_user and current_user.is_admin %}
     <form class="score-form" method="post" action="/matches/{{ match.id }}/score">
       <label>Marcador final</label>
-      <input type="number" name="home_score" min="0" value="{{ match.home_score if match.home_score is not none else 0 }}" required>
+      <input type="number" name="home_score" min="0" value="{{ match.home_score if match.home_score is not none else 0 }}">
       <span>-</span>
-      <input type="number" name="away_score" min="0" value="{{ match.away_score if match.away_score is not none else 0 }}" required>
+      <input type="number" name="away_score" min="0" value="{{ match.away_score if match.away_score is not none else 0 }}">
       <button type="submit" class="btn btn-secondary btn-sm">Guardar marcador</button>
     </form>
+    {% endif %}
 
     <div class="predictions-section">
       <h3>Predicciones</h3>
@@ -116,7 +125,13 @@
       <ul class="prediction-list">
         {% for p in match.predictions %}
         <li class="prediction-item result-{{ p.result.value }}">
-          <div>
+          <div class="prediction-info">
+            <div class="prediction-author">
+              {% if p.user %}
+                {% if p.user.picture %}<img src="{{ p.user.picture }}" alt="" class="avatar avatar-sm">{% endif %}
+                <span class="author-name">{{ p.user.name.split()[0] }}</span>
+              {% endif %}
+            </div>
             <strong>{{ prediction_label(p) }}</strong>
             {% if p.notes %}<p class="notes">{{ p.notes }}</p>{% endif %}
           </div>
@@ -126,6 +141,7 @@
               {% elif p.result == PredictionResult.MISS %}✗ Fallida
               {% else %}⏳ Pendiente{% endif %}
             </span>
+            {% if current_user and current_user.is_admin %}
             <form method="post" action="/predictions/{{ p.id }}/result" class="result-form">
               <select name="result">
                 <option value="pending" {% if p.result == PredictionResult.PENDING %}selected{% endif %}>Pendiente</option>
@@ -134,9 +150,12 @@
               </select>
               <button type="submit" class="btn btn-secondary btn-sm">Actualizar</button>
             </form>
+            {% endif %}
+            {% if current_user and (current_user.is_admin or p.user_id == current_user.id) %}
             <form method="post" action="/predictions/{{ p.id }}/delete">
               <button type="submit" class="btn btn-danger btn-sm">×</button>
             </form>
+            {% endif %}
           </div>
         </li>
         {% endfor %}
@@ -145,27 +164,23 @@
       <p class="empty-sm">Sin predicciones aún.</p>
       {% endif %}
 
+      {% if current_user %}
       <form class="prediction-form" method="post" action="/predictions">
         <input type="hidden" name="match_id" value="{{ match.id }}">
-        <label>
-          Tipo
+        <label>Tipo
           <select name="type" class="prediction-type" data-match="{{ match.id }}">
             <option value="double_chance">Doble oportunidad</option>
             <option value="over_under">Más/Menos goles</option>
           </select>
         </label>
-
-        <label class="field-double" data-match="{{ match.id }}">
-          Selección
+        <label class="field-double" data-match="{{ match.id }}">Selección
           <select name="double_chance">
             <option value="1X">1X — Local o Empate</option>
             <option value="X2">X2 — Empate o Visitante</option>
             <option value="12">12 — Local o Visitante</option>
           </select>
         </label>
-
-        <label class="field-over hidden" data-match="{{ match.id }}">
-          Línea de goles
+        <label class="field-over hidden" data-match="{{ match.id }}">Línea de goles
           <select name="over_under_line">
             <option value="1.5">1.5</option>
             <option value="2.5" selected>2.5</option>
@@ -173,22 +188,20 @@
             <option value="4.5">4.5</option>
           </select>
         </label>
-
-        <label class="field-over hidden" data-match="{{ match.id }}">
-          Pick
+        <label class="field-over hidden" data-match="{{ match.id }}">Pick
           <select name="over_under_pick">
             <option value="over">Más de</option>
             <option value="under">Menos de</option>
           </select>
         </label>
-
-        <label class="span-2">
-          Notas (opcional)
+        <label class="span-2">Notas (opcional)
           <input type="text" name="notes" placeholder="Cuota, confianza, etc.">
         </label>
-
         <button type="submit" class="btn btn-primary">Agregar predicción</button>
       </form>
+      {% else %}
+      <p class="login-hint"><a href="/auth/login">Inicia sesión</a> para agregar predicciones.</p>
+      {% endif %}
     </div>
   </article>
   {% endfor %}
@@ -199,12 +212,8 @@ document.querySelectorAll('.prediction-type').forEach(select => {
   const matchId = select.dataset.match;
   const toggle = () => {
     const isOver = select.value === 'over_under';
-    document.querySelectorAll(`[data-match="${matchId}"].field-double`).forEach(el => {
-      el.classList.toggle('hidden', isOver);
-    });
-    document.querySelectorAll(`[data-match="${matchId}"].field-over`).forEach(el => {
-      el.classList.toggle('hidden', !isOver);
-    });
+    document.querySelectorAll(`[data-match="${matchId}"].field-double`).forEach(el => el.classList.toggle('hidden', isOver));
+    document.querySelectorAll(`[data-match="${matchId}"].field-over`).forEach(el => el.classList.toggle('hidden', !isOver));
   };
   select.addEventListener('change', toggle);
   toggle();
