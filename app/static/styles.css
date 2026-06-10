@@ -477,7 +477,6 @@ body {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
-  transform: translateY(0);
 }
 
 .profile-menu-header {
@@ -2243,7 +2242,6 @@ input:focus, select:focus {
   .profile-dropdown.open .profile-menu {
     visibility: visible;
     pointer-events: auto;
-    transform: translateY(0);
   }
 
   .profile-menu-handle {
