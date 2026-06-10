@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="stats-grid">
+  <div class="stat-card">
+    <span class="stat-label">Total predicciones</span>
+    <span class="stat-value">{{ stats.total }}</span>
+  </div>
+  <div class="stat-card hit">
+    <span class="stat-label">Acertadas</span>
+    <span class="stat-value">{{ stats.hits }}</span>
+  </div>
+  <div class="stat-card miss">
+    <span class="stat-label">Fallidas</span>
+    <span class="stat-value">{{ stats.misses }}</span>
+  </div>
+  <div class="stat-card pending">
+    <span class="stat-label">Pendientes</span>
+    <span class="stat-value">{{ stats.pending }}</span>
+  </div>
+  <div class="stat-card accuracy">
+    <span class="stat-label">Efectividad</span>
+    <span class="stat-value">{% if stats.accuracy is not none %}{{ stats.accuracy }}%{% else %}—{% endif %}</span>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Categorías</h2>
+  <div class="category-bar">
+    {% for cat in categories %}
+    <a href="/?category_id={{ cat.id }}" class="chip {% if cat.id == selected_category_id %}active{% endif %}">
+      {{ cat.name }}
+    </a>
+    {% endfor %}
+  </div>
+  <form class="inline-form" method="post" action="/categories">
+    <input type="text" name="name" placeholder="Nueva categoría (ej. Liga MX)" required>
+    <button type="submit" class="btn btn-secondary">Agregar</button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>Nuevo partido</h2>
+  <form class="grid-form" method="post" action="/matches">
+    <input type="hidden" name="category_id" value="{{ selected_category_id }}">
+    <label>
+      Local
+      <input type="text" name="home_team" required placeholder="México">
+    </label>
+    <label>
+      Visitante
+      <input type="text" name="away_team" required placeholder="Brasil">
+    </label>
+    <label>
+      Fecha y hora
+      <input type="datetime-local" name="match_date" required>
+    </label>
+    <label>
+      Grupo
+      <input type="text" name="group_name" placeholder="A">
+    </label>
+    <label class="span-2">
+      Sede
+      <input type="text" name="venue" placeholder="Estadio Azteca">
+    </label>
+    <div class="span-2">
+      <button type="submit" class="btn btn-primary">Registrar partido</button>
+    </div>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>Partidos {% if categories %}— {{ categories | selectattr('id', 'equalto', selected_category_id) | map(attribute='name') | first }}{% endif %}</h2>
+
+  {% if not matches %}
+  <p class="empty">No hay partidos en esta categoría.</p>
+  {% endif %}
+
+  {% for match in matches %}
+  <article class="match-card">
+    <div class="match-header">
+      <div>
+        <span class="group-badge">Grupo {{ match.group_name or '—' }}</span>
+        <time>{{ match.match_date.strftime('%d/%m/%Y %H:%M') }}</time>
+        {% if match.venue %}<span class="venue">{{ match.venue }}</span>{% endif %}
+      </div>
+      <form method="post" action="/matches/{{ match.id }}/delete" onsubmit="return confirm('¿Eliminar partido y sus predicciones?')">
+        <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+      </form>
+    </div>
+
+    <div class="match-teams">
+      <span class="team">{{ match.home_team }}</span>
+      <div class="score-box">
+        {% if match.is_finished %}
+        <strong>{{ match.home_score }} - {{ match.away_score }}</strong>
+        {% else %}
+        <span class="vs">vs</span>
+        {% endif %}
+      </div>
+      <span class="team">{{ match.away_team }}</span>
+    </div>
+
+    <form class="score-form" method="post" action="/matches/{{ match.id }}/score">
+      <label>Marcador final</label>
+      <input type="number" name="home_score" min="0" value="{{ match.home_score if match.home_score is not none else 0 }}" required>
+      <span>-</span>
+      <input type="number" name="away_score" min="0" value="{{ match.away_score if match.away_score is not none else 0 }}" required>
+      <button type="submit" class="btn btn-secondary btn-sm">Guardar marcador</button>
+    </form>
+
+    <div class="predictions-section">
+      <h3>Predicciones</h3>
+
+      {% if match.predictions %}
+      <ul class="prediction-list">
+        {% for p in match.predictions %}
+        <li class="prediction-item result-{{ p.result.value }}">
+          <div>
+            <strong>{{ prediction_label(p) }}</strong>
+            {% if p.notes %}<p class="notes">{{ p.notes }}</p>{% endif %}
+          </div>
+          <div class="prediction-actions">
+            <span class="badge badge-{{ p.result.value }}">
+              {% if p.result == PredictionResult.HIT %}✓ Acertada
+              {% elif p.result == PredictionResult.MISS %}✗ Fallida
+              {% else %}⏳ Pendiente{% endif %}
+            </span>
+            <form method="post" action="/predictions/{{ p.id }}/result" class="result-form">
+              <select name="result">
+                <option value="pending" {% if p.result == PredictionResult.PENDING %}selected{% endif %}>Pendiente</option>
+                <option value="hit" {% if p.result == PredictionResult.HIT %}selected{% endif %}>Acertada</option>
+                <option value="miss" {% if p.result == PredictionResult.MISS %}selected{% endif %}>Fallida</option>
+              </select>
+              <button type="submit" class="btn btn-secondary btn-sm">Actualizar</button>
+            </form>
+            <form method="post" action="/predictions/{{ p.id }}/delete">
+              <button type="submit" class="btn btn-danger btn-sm">×</button>
+            </form>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="empty-sm">Sin predicciones aún.</p>
+      {% endif %}
+
+      <form class="prediction-form" method="post" action="/predictions">
+        <input type="hidden" name="match_id" value="{{ match.id }}">
+        <label>
+          Tipo
+          <select name="type" class="prediction-type" data-match="{{ match.id }}">
+            <option value="double_chance">Doble oportunidad</option>
+            <option value="over_under">Más/Menos goles</option>
+          </select>
+        </label>
+
+        <label class="field-double" data-match="{{ match.id }}">
+          Selección
+          <select name="double_chance">
+            <option value="1X">1X — Local o Empate</option>
+            <option value="X2">X2 — Empate o Visitante</option>
+            <option value="12">12 — Local o Visitante</option>
+          </select>
+        </label>
+
+        <label class="field-over hidden" data-match="{{ match.id }}">
+          Línea de goles
+          <select name="over_under_line">
+            <option value="1.5">1.5</option>
+            <option value="2.5" selected>2.5</option>
+            <option value="3.5">3.5</option>
+            <option value="4.5">4.5</option>
+          </select>
+        </label>
+
+        <label class="field-over hidden" data-match="{{ match.id }}">
+          Pick
+          <select name="over_under_pick">
+            <option value="over">Más de</option>
+            <option value="under">Menos de</option>
+          </select>
+        </label>
+
+        <label class="span-2">
+          Notas (opcional)
+          <input type="text" name="notes" placeholder="Cuota, confianza, etc.">
+        </label>
+
+        <button type="submit" class="btn btn-primary">Agregar predicción</button>
+      </form>
+    </div>
+  </article>
+  {% endfor %}
+</section>
+
+<script>
+document.querySelectorAll('.prediction-type').forEach(select => {
+  const matchId = select.dataset.match;
+  const toggle = () => {
+    const isOver = select.value === 'over_under';
+    document.querySelectorAll(`[data-match="${matchId}"].field-double`).forEach(el => {
+      el.classList.toggle('hidden', isOver);
+    });
+    document.querySelectorAll(`[data-match="${matchId}"].field-over`).forEach(el => {
+      el.classList.toggle('hidden', !isOver);
+    });
+  };
+  select.addEventListener('change', toggle);
+  toggle();
+});
+</script>
+{% endblock %}
