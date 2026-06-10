@@ -6,9 +6,11 @@
   <meta name="theme-color" content="#282828" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#F8E8C8" media="(prefers-color-scheme: light)">
   <title>{% block title %}Hamster Fijas{% endblock %}</title>
-  {% block meta_description %}{% endblock %}
-  {% block meta_robots %}{% endblock %}
-  {% block og_type %}website{% endblock %}
+  <template hidden aria-hidden="true" class="seo-template">
+    {% block meta_description %}{% endblock %}
+    {% block meta_robots %}{% endblock %}
+    {% block og_type %}{% endblock %}
+  </template>
   {% from "macros/seo_head.html" import seo_tags %}
   {% set seo_desc = self.meta_description()|trim %}
   {% set seo_robots_val = self.meta_robots()|trim %}
