@@ -423,6 +423,24 @@ def puntos_page(
     )
 
 
+@app.get("/privacidad", response_class=HTMLResponse)
+def privacy_page(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user),
+):
+    return render("privacidad.html", {}, request=request, db=db, current_user=current_user)
+
+
+@app.get("/terminos", response_class=HTMLResponse)
+def terms_page(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user),
+):
+    return render("terminos.html", {}, request=request, db=db, current_user=current_user)
+
+
 @app.get("/partidos/{match_id}", response_class=HTMLResponse)
 def match_predictions_page(
     match_id: int,

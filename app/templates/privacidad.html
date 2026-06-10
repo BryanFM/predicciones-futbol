@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Política de Privacidad – Hamster Fijas{% endblock %}
+{% block content %}
+<div class="legal-page">
+  <h2 class="legal-title">Política de Privacidad</h2>
+  <p class="legal-updated">Última actualización: 10 de junio de 2026</p>
+
+  <section class="legal-section">
+    <h3>1. Responsable del tratamiento</h3>
+    <p>
+      <strong>Hamster Fijas</strong> es una plataforma privada de predicciones deportivas para el
+      Mundial de Fútbol 2026, operada de forma personal y sin fines de lucro.
+      Para consultas sobre privacidad puedes escribir a
+      <a href="mailto:bryan.flores.magallanes@gmail.com">bryan.flores.magallanes@gmail.com</a>.
+    </p>
+  </section>
+
+  <section class="legal-section">
+    <h3>2. Datos personales que recopilamos</h3>
+    <p>Al usar Hamster Fijas recopilamos los siguientes datos:</p>
+    <ul>
+      <li><strong>Datos de cuenta Google:</strong> nombre, correo electrónico e imagen de perfil, obtenidos mediante inicio de sesión con Google OAuth 2.0.</li>
+      <li><strong>Número de teléfono:</strong> para verificación de identidad mediante SMS (Twilio). Solo se utiliza para confirmar tu participación.</li>
+      <li><strong>Predicciones:</strong> los marcadores, resultados y elecciones de campeón que registras en la plataforma.</li>
+      <li><strong>Datos de sesión:</strong> una cookie de sesión técnica (<code>hf_session</code>) que mantiene tu inicio de sesión activo.</li>
+    </ul>
+  </section>
+
+  <section class="legal-section">
+    <h3>3. Finalidad y base legal del tratamiento</h3>
+    <table class="legal-table">
+      <thead>
+        <tr><th>Dato</th><th>Finalidad</th><th>Base legal</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Nombre, correo, foto</td>
+          <td>Identificar al usuario, mostrar perfil y ranking</td>
+          <td>Ejecución del servicio / consentimiento</td>
+        </tr>
+        <tr>
+          <td>Número de teléfono</td>
+          <td>Verificación de identidad para participar</td>
+          <td>Consentimiento explícito</td>
+        </tr>
+        <tr>
+          <td>Predicciones</td>
+          <td>Calcular puntos y mostrar clasificación</td>
+          <td>Ejecución del servicio</td>
+        </tr>
+        <tr>
+          <td>Cookie de sesión</td>
+          <td>Mantener sesión iniciada (técnica, imprescindible)</td>
+          <td>Interés legítimo / necesidad técnica</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="legal-section">
+    <h3>4. Destinatarios de los datos</h3>
+    <p>Tus datos son tratados por los siguientes proveedores de servicios externos:</p>
+    <ul>
+      <li><strong>Google LLC</strong> – autenticación OAuth. <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Política de privacidad de Google</a>.</li>
+      <li><strong>Twilio Inc.</strong> – envío de SMS de verificación. <a href="https://www.twilio.com/en-us/legal/privacy" target="_blank" rel="noopener">Política de privacidad de Twilio</a>.</li>
+      <li><strong>Render.com</strong> – infraestructura de alojamiento del servidor. <a href="https://render.com/privacy" target="_blank" rel="noopener">Política de privacidad de Render</a>.</li>
+    </ul>
+    <p>No vendemos, cedemos ni compartimos tus datos personales con terceros no indicados en esta lista.</p>
+  </section>
+
+  <section class="legal-section">
+    <h3>5. Cookies</h3>
+    <p>Utilizamos únicamente una cookie técnica de sesión (<code>hf_session</code>) necesaria para que el inicio de sesión funcione. No usamos cookies de análisis, publicidad ni seguimiento de terceros.</p>
+  </section>
+
+  <section class="legal-section">
+    <h3>6. Tus derechos (Ley 29733 – Perú)</h3>
+    <p>
+      De acuerdo con la Ley N.° 29733, Ley de Protección de Datos Personales del Perú, y su
+      Reglamento (D.S. 003-2013-JUS), puedes ejercer en cualquier momento los siguientes derechos
+      escribiendo a <a href="mailto:bryan.flores.magallanes@gmail.com">bryan.flores.magallanes@gmail.com</a>:
+    </p>
+    <ul>
+      <li><strong>Acceso:</strong> conocer qué datos personales tuyos tenemos.</li>
+      <li><strong>Rectificación:</strong> corregir datos inexactos o incompletos.</li>
+      <li><strong>Cancelación / Supresión:</strong> solicitar la eliminación de tu cuenta y datos.</li>
+      <li><strong>Oposición:</strong> oponerte al tratamiento de tus datos.</li>
+    </ul>
+    <p>Responderemos tu solicitud en un plazo máximo de 20 días hábiles.</p>
+  </section>
+
+  <section class="legal-section">
+    <h3>7. Conservación de los datos</h3>
+    <p>
+      Los datos se conservan mientras la plataforma esté activa o hasta que solicites su eliminación.
+      Al cierre de la plataforma, todos los datos serán eliminados de forma permanente.
+    </p>
+  </section>
+
+  <section class="legal-section">
+    <h3>8. Seguridad</h3>
+    <p>
+      Aplicamos medidas técnicas razonables para proteger tus datos: conexiones HTTPS, autenticación
+      delegada a Google OAuth, y almacenamiento seguro de sesiones. Sin embargo, ningún sistema es
+      infalible; te recomendamos cerrar sesión en dispositivos compartidos.
+    </p>
+  </section>
+
+  <section class="legal-section">
+    <h3>9. Cambios en esta política</h3>
+    <p>
+      Podemos actualizar esta política ocasionalmente. Cuando lo hagamos, actualizaremos la fecha
+      indicada al inicio de esta página. Te recomendamos revisarla periódicamente.
+    </p>
+  </section>
+</div>
+{% endblock %}
