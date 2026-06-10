@@ -30,7 +30,7 @@ services:
       - key: GOOGLE_CLIENT_SECRET
         sync: false
       - key: ADMIN_EMAILS
-        sync: false
+        value: bryan.flores.magallanes@gmail.com,maxtorres4444@gmail.com
       - key: TWILIO_ACCOUNT_SID
         sync: false
       - key: TWILIO_AUTH_TOKEN
