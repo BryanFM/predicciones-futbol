@@ -248,6 +248,8 @@ templates.env.globals["SCORE_HIT_POINTS"] = SCORE_HIT_POINTS
 templates.env.globals["CHAMPION_HIT_POINTS"] = CHAMPION_HIT_POINTS
 templates.env.globals["PredictionResult"] = PredictionResult
 templates.env.globals["PredictionType"] = PredictionType
+templates.env.globals["GA_MEASUREMENT_ID"] = os.environ.get("GA_MEASUREMENT_ID", "").strip()
+templates.env.globals["CLARITY_PROJECT_ID"] = os.environ.get("CLARITY_PROJECT_ID", "").strip()
 
 
 def _home_url(

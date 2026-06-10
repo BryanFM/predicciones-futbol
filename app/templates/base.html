@@ -154,17 +154,21 @@
       </nav>
     </div>
   </footer>
-  <aside id="cookie-consent" class="cookie-consent" role="dialog" aria-labelledby="cookie-consent-title" aria-live="polite" hidden>
+  <aside id="cookie-consent" class="cookie-consent" role="dialog" aria-labelledby="cookie-consent-title" aria-live="polite" hidden
+       data-ga-id="{{ GA_MEASUREMENT_ID }}"
+       data-clarity-id="{{ CLARITY_PROJECT_ID }}">
     <div class="cookie-consent-inner container">
       <div class="cookie-consent-text">
-        <p id="cookie-consent-title" class="cookie-consent-title">🍪 Uso de cookies</p>
+        <p id="cookie-consent-title" class="cookie-consent-title">Usamos cookies para mejorar tu experiencia.</p>
         <p class="cookie-consent-desc">
-          Usamos una cookie técnica de sesión (<code>hf_session</code>) y almacenamiento local para tu preferencia de tema.
-          No usamos cookies de publicidad ni seguimiento.
-          <a href="/privacidad#cookies">Más información</a>.
+          Las cookies esenciales (sesión, pagos, seguridad) se activan siempre al usar el sitio. Además, usamos cookies analíticas opcionales (Google Analytics, Microsoft Clarity) para entender cómo usas la plataforma.
+          <a href="/privacidad#cookies">Más información</a>
         </p>
       </div>
-      <button type="button" class="btn btn-primary btn-sm cookie-consent-accept" id="cookie-consent-accept">Aceptar</button>
+      <div class="cookie-consent-actions">
+        <button type="button" class="btn btn-outline btn-sm" id="cookie-consent-essential">Solo esenciales</button>
+        <button type="button" class="btn btn-primary btn-sm" id="cookie-consent-accept">Aceptar todo</button>
+      </div>
     </div>
   </aside>
   <script src="{{ static_url('lazyload.js') }}" defer></script>

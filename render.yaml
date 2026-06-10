@@ -37,6 +37,10 @@ services:
         sync: false
       - key: TWILIO_VERIFY_SERVICE_SID
         sync: false
+      - key: GA_MEASUREMENT_ID
+        sync: false
+      - key: CLARITY_PROJECT_ID
+        sync: false
 
 databases:
   - name: predicciones-db
