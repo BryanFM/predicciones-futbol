@@ -7,7 +7,7 @@ from pathlib import Path
 
 from fastapi import Depends, FastAPI, Form, HTTPException, Request
 from fastapi.exception_handlers import http_exception_handler
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session, joinedload
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -53,6 +53,15 @@ app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    return FileResponse(
+        BASE_DIR / "static" / "favicon-32.png",
+        media_type="image/png",
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
 
 
 @app.exception_handler(HTTPException)
