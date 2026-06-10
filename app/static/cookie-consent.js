@@ -26,9 +26,24 @@
     };
   }
 
+  function grantGoogleConsent() {
+    if (!window.gtag) return;
+    window.gtag('consent', 'update', {
+      analytics_storage: 'granted',
+      ad_storage: 'denied',
+      ad_user_data: 'denied',
+      ad_personalization: 'denied',
+    });
+  }
+
   function loadGoogleAnalytics(measurementId) {
     if (!measurementId || window.__hfGaLoaded) return;
     window.__hfGaLoaded = true;
+
+    if (window.gtag) {
+      grantGoogleConsent();
+      return;
+    }
 
     var script = document.createElement('script');
     script.async = true;
@@ -41,6 +56,12 @@
     }
     window.gtag = gtag;
     gtag('js', new Date());
+    gtag('consent', 'default', {
+      analytics_storage: 'granted',
+      ad_storage: 'denied',
+      ad_user_data: 'denied',
+      ad_personalization: 'denied',
+    });
     gtag('config', measurementId, { anonymize_ip: true });
   }
 
@@ -59,9 +80,10 @@
     document.head.appendChild(script);
   }
 
-  function loadAnalytics() {
+  function enableAnalytics() {
     var ids = getAnalyticsIds();
-    loadGoogleAnalytics(ids.ga);
+    if (ids.ga) loadGoogleAnalytics(ids.ga);
+    else grantGoogleConsent();
     loadClarity(ids.clarity);
   }
 
@@ -94,14 +116,14 @@
 
   function saveAcceptAll() {
     setConsent('all');
-    loadAnalytics();
+    enableAnalytics();
     hideBanner();
   }
 
   function init() {
     var consent = getStoredConsent();
     if (consent === 'all') {
-      loadAnalytics();
+      enableAnalytics();
       return;
     }
     if (consent === 'essential') return;
@@ -118,7 +140,7 @@
 
   window.hfCookieConsent = {
     get: getStoredConsent,
-    loadAnalytics: loadAnalytics,
+    enableAnalytics: enableAnalytics,
     reopen: showBanner,
   };
 

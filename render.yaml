@@ -38,9 +38,9 @@ services:
       - key: TWILIO_VERIFY_SERVICE_SID
         sync: false
       - key: GA_MEASUREMENT_ID
-        sync: false
+        value: G-W394R9W8E7
       - key: CLARITY_PROJECT_ID
-        sync: false
+        value: x51o85xggi
 
 databases:
   - name: predicciones-db

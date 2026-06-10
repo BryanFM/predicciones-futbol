@@ -10,6 +10,23 @@
   <link rel="shortcut icon" href="{{ static_url('favicon-32.png') }}">
   <link rel="apple-touch-icon" sizes="180x180" href="{{ static_url('apple-touch-icon.png') }}">
   <link rel="stylesheet" href="{{ static_url('styles.css') }}">
+  {% if GA_MEASUREMENT_ID %}
+  <script async src="https://www.googletagmanager.com/gtag/js?id={{ GA_MEASUREMENT_ID }}"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    window.gtag = gtag;
+    gtag('js', new Date());
+    gtag('consent', 'default', {
+      analytics_storage: 'denied',
+      ad_storage: 'denied',
+      ad_user_data: 'denied',
+      ad_personalization: 'denied',
+      wait_for_update: 500
+    });
+    gtag('config', '{{ GA_MEASUREMENT_ID }}', { anonymize_ip: true });
+  </script>
+  {% endif %}
   <script src="{{ static_url('countdown.js') }}" defer></script>
   <script>
     (function () {
