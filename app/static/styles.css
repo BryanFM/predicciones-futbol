@@ -112,6 +112,20 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+button,
+a,
+.match-row,
+.champion-option,
+.filter-chip {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+.champion-option,
+.match-row {
+  touch-action: manipulation;
+}
+
 body {
   font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
   background: linear-gradient(160deg, var(--bg-gradient-1) 0%, var(--bg-gradient-2) 40%, var(--bg-gradient-3) 100%);
@@ -207,6 +221,7 @@ body {
   color: var(--text);
   font-size: 0.85rem;
   font-weight: 600;
+  flex-shrink: 0;
   transition: border-color 0.15s, background 0.15s, transform 0.1s;
 }
 
@@ -242,6 +257,9 @@ body {
   font-weight: 800;
   color: var(--primary);
   line-height: 1;
+  flex-shrink: 0;
+  min-width: 1ch;
+  font-variant-numeric: tabular-nums;
 }
 
 .nav-dropdown-icon-img {
@@ -378,6 +396,8 @@ body {
 }
 
 .btn-google:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.35); transform: translateY(-1px); }
+
+.btn-google-label-short { display: none; }
 
 .btn-outline {
   background: transparent;
@@ -2070,40 +2090,150 @@ input:focus, select:focus {
 .checkbox-label input { width: auto; }
 
 @media (max-width: 768px) {
+  body {
+    padding-left: env(safe-area-inset-left, 0);
+    padding-right: env(safe-area-inset-right, 0);
+  }
+
+  .container {
+    padding-left: max(0.75rem, env(safe-area-inset-left, 0));
+    padding-right: max(0.75rem, env(safe-area-inset-right, 0));
+    padding-bottom: max(2rem, env(safe-area-inset-bottom, 0));
+  }
+
+  .header {
+    margin-bottom: 1rem;
+  }
+
   .header-inner {
-    flex-direction: column;
-    align-items: flex-start;
+    flex-direction: row;
+    align-items: center;
+    padding: 0.6rem 0.75rem;
+    gap: 0.5rem;
+  }
+
+  .brand {
+    min-width: 0;
+    flex: 1 1 auto;
+    max-width: 42%;
+  }
+
+  .brand > div {
+    min-width: 0;
+  }
+
+  .brand-logo {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+  }
+
+  .header h1 {
+    font-size: 1.05rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .header-nav {
-    width: 100%;
-    flex-wrap: wrap;
+    width: auto;
+    flex-wrap: nowrap;
     justify-content: flex-end;
+    gap: 0.35rem;
+    flex-shrink: 0;
+    min-width: 0;
+  }
+
+  .hamster-points-nav {
+    padding: 0.28rem 0.5rem 0.28rem 0.28rem;
+    gap: 0.3rem;
+  }
+
+  .hp-nav-value {
+    font-size: 1rem;
+    min-width: 1.25rem;
+    text-align: center;
+  }
+
+  .theme-toggle {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+  }
+
+  .user-chip {
+    max-width: none;
+    padding: 0.25rem 0.45rem 0.25rem 0.25rem;
+    flex-shrink: 0;
+  }
+
+  .user-name {
+    max-width: 3.25rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.82rem;
+  }
+
+  .profile-trigger .admin-badge {
+    display: none;
+  }
+
+  .btn-google {
+    padding: 0.45rem 0.65rem;
+    font-size: 0.78rem;
+    gap: 0.35rem;
   }
 
   .nav-dropdown-menu,
   .profile-menu {
-    right: 0;
+    position: fixed;
+    top: auto;
+    bottom: 0;
     left: 0;
+    right: 0;
     min-width: unset;
+    max-height: min(85vh, 520px);
+    overflow-y: auto;
+    border-radius: 16px 16px 0 0;
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0));
+    transform: translateY(8px);
+  }
+
+  .profile-dropdown.open .profile-menu {
+    transform: translateY(0);
+  }
+
+  .profile-menu::before {
+    display: none;
+  }
+
+  .filters-panel {
+    position: sticky;
+    top: calc(3.75rem + env(safe-area-inset-top, 0));
   }
 
   .filters-form-compact {
-    flex-direction: column;
-    align-items: stretch;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.65rem;
+    align-items: end;
+  }
+
+  .filter-select-field.filter-select-tournament {
+    grid-column: 1 / -1;
   }
 
   .filter-select-field {
     max-width: none;
+    flex: unset;
   }
 
   .filters-count {
+    grid-column: 1 / -1;
     margin-left: 0;
     padding-bottom: 0;
-  }
-
-  .filters-panel {
-    position: static;
+    text-align: center;
   }
 
   .filter-actions {
@@ -2112,12 +2242,53 @@ input:focus, select:focus {
     justify-content: space-between;
   }
 
+  .verify-banner {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+    gap: 0.75rem;
+  }
+
+  .verify-banner .btn {
+    width: 100%;
+  }
+
+  .champion-toggle {
+    flex-wrap: wrap;
+    padding: 0.85rem 1rem;
+    gap: 0.65rem;
+  }
+
+  .champion-toggle-title {
+    font-size: 1rem;
+  }
+
+  .champion-body {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .champion-stats-row {
+    grid-template-columns: minmax(0, 1fr) minmax(56px, 88px) 2.25rem;
+    font-size: 0.8rem;
+  }
+
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 
   .prize-grid {
     grid-template-columns: 1fr;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  .tournament-label span {
+    font-size: 0.82rem;
   }
 }
 
@@ -2133,47 +2304,233 @@ input:focus, select:focus {
   .prediction-item { flex-direction: column; align-items: flex-start; }
   .match-list-head { display: none; }
 
+  /* Partidos: tarjetas apiladas */
   .match-row {
-    grid-template-columns: 56px 1fr 96px;
-    gap: 0.65rem;
+    display: grid;
+    grid-template-columns: 52px 1fr;
+    grid-template-areas:
+      "date teams"
+      "community community"
+      "picks picks";
+    gap: 0.55rem 0.65rem;
+    padding: 0.85rem;
+    align-items: start;
   }
 
   .match-list-with-whistle .match-row {
-    grid-template-columns: 40px 56px 1fr 96px;
+    grid-template-columns: 34px 52px 1fr;
+    grid-template-areas:
+      "whistle date teams"
+      "community community community"
+      "picks picks picks";
+  }
+
+  .match-whistle {
+    grid-area: whistle;
+    align-self: center;
   }
 
   .match-whistle-gif {
+    width: 32px;
+    height: 32px;
+  }
+
+  .match-row-date {
+    grid-area: date;
+  }
+
+  .match-row-info {
+    grid-area: teams;
+    min-width: 0;
+  }
+
+  .match-row-team {
+    font-size: 0.88rem;
+  }
+
+  .match-row-team span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+
+  .match-row-community {
+    grid-area: community;
+    align-self: stretch;
+    justify-content: stretch;
+  }
+
+  .match-row-community .match-outcome-stats {
+    width: 100%;
+    max-width: none;
+  }
+
+  .outcome-labels {
+    font-size: 0.68rem;
+  }
+
+  .match-row-picks {
+    grid-area: picks;
+    grid-column: unset;
+    margin-left: 0;
+    gap: 0.4rem;
+  }
+
+  .match-list-with-whistle .match-row-picks {
+    margin-left: 0;
+  }
+
+  .pick-slot {
+    min-height: 48px;
+    padding: 0.45rem 0.2rem;
+  }
+
+  .pick-label {
+    font-size: 0.62rem;
+    margin-bottom: 0.1rem;
+  }
+
+  .pick-value {
+    font-size: 0.85rem;
+  }
+
+  .pick-slot.official-slot.filled .pick-value,
+  .pick-slot.score-slot.filled .pick-value {
+    font-size: 1rem;
+  }
+
+  .pred-fields { grid-template-columns: 1fr; }
+
+  .login-cta {
+    flex-direction: column;
+    text-align: center;
+    padding: 1.25rem 1rem;
+  }
+
+  .login-cta .btn-google {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .champion-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.4rem;
+  }
+
+  .champion-option {
+    padding: 0.55rem 0.35rem;
+    font-size: 0.72rem;
+    gap: 0.25rem;
+  }
+
+  .champion-option .team-flag {
+    width: 24px;
+    height: 18px;
+  }
+
+  .hp-nav-label { display: none; }
+
+  .hamster-points-nav-guest {
+    font-size: 0;
+    padding: 0.28rem;
+  }
+
+  .countdown-units {
+    gap: 0.4rem;
+    flex-wrap: wrap;
+  }
+
+  .countdown-unit {
+    min-width: 56px;
+    padding: 0.5rem 0.55rem;
+  }
+
+  .countdown-unit span:first-child {
+    font-size: 1.45rem;
+  }
+
+  /* Modal tipo bottom sheet */
+  .modal {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal-dialog {
+    max-width: none;
+    width: 100%;
+    border-radius: 16px 16px 0 0;
+    max-height: min(92vh, 720px);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  .modal-dialog.panel {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  .score-prediction-form .score-input-row {
+    gap: 0.65rem;
+  }
+
+  .hf-toast-host {
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: max(0.75rem, env(safe-area-inset-bottom, 0));
+  }
+
+  .hf-toast {
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .btn-google-label { display: none; }
+  .btn-google-label-short { display: inline; }
+
+
+  .brand-logo {
     width: 36px;
     height: 36px;
   }
 
-  .match-row-community {
-    align-self: center;
+  .profile-trigger .user-name,
+  .profile-trigger .profile-chevron {
+    display: none;
   }
 
-  .match-row-community .match-outcome-stats {
-    max-width: 96px;
+  .user-chip {
+    padding: 0.2rem;
+    border-radius: 50%;
   }
 
-  .outcome-labels {
-    font-size: 0.62rem;
+  .hamster-points-nav {
+    padding: 0.25rem 0.45rem 0.25rem 0.25rem;
   }
 
-  .match-row-picks {
-    grid-column: 1 / -1;
-    margin-left: calc(56px + 0.65rem);
+  .hp-nav-icon {
+    width: 24px;
+    height: 24px;
   }
 
-  .match-list-with-whistle .match-row-picks {
-    margin-left: calc(40px + 56px + 0.65rem * 2);
+  .hp-nav-value {
+    font-size: 0.95rem;
   }
 
-  .pred-fields { grid-template-columns: 1fr; }
-  .login-cta { flex-direction: column; text-align: center; }
+  .champion-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 
-  .champion-grid { grid-template-columns: repeat(2, 1fr); }
-  .hp-nav-label { display: none; }
-  .countdown-units { gap: 0.5rem; }
+  .champion-header-pick strong {
+    max-width: 9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .verified-badge {
+    display: none;
+  }
 }
 
 /* ── Countdown ── */
