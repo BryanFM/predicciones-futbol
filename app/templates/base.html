@@ -36,6 +36,7 @@
     })();
   </script>
 </head>
+{% from "macros/user_avatar.html" import user_avatar %}
 <body class="layout-sticky-footer">
   <header class="header">
     <div class="container header-inner">
@@ -72,7 +73,7 @@
         <div class="profile-dropdown" id="profile-menu">
           <button type="button" class="user-chip profile-trigger" aria-expanded="false" aria-haspopup="true">
             {% if current_user.picture %}
-              <img src="{{ current_user.picture }}" alt="" class="avatar">
+              {{ user_avatar(current_user, 'avatar') }}
             {% endif %}
             <span class="user-name">{{ current_user.name.split()[0] }}</span>
             {% if current_user.phone_verified %}<span class="verified-badge" title="Teléfono verificado">✓</span>{% endif %}
@@ -86,7 +87,7 @@
             <div class="profile-menu-handle" aria-hidden="true"></div>
             <div class="profile-menu-header">
               {% if current_user.picture %}
-                <img src="{{ current_user.picture }}" alt="" class="avatar avatar-lg">
+                {{ user_avatar(current_user, 'avatar avatar-lg', 'lg') }}
               {% endif %}
               <div>
                 <strong>{{ current_user.name }}</strong>

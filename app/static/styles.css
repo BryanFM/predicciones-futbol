@@ -3398,6 +3398,55 @@ body.cookie-banner-open .site-footer {
   text-decoration: underline;
 }
 
+/* ── Error pages ─────────────────────────────────────────────────────────── */
+.error-page {
+  max-width: 520px;
+  margin: 2.5rem auto 3rem;
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+.error-page-img {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--primary);
+  margin-bottom: 1rem;
+  opacity: 0.92;
+}
+
+.error-page-code {
+  margin: 0 0 0.35rem;
+  font-size: 3.5rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--primary);
+  opacity: 0.35;
+}
+
+.error-page-title {
+  margin: 0 0 0.75rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.error-page-message {
+  margin: 0 auto 1.5rem;
+  max-width: 38ch;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.error-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  justify-content: center;
+}
+
 /* ── Legal pages ─────────────────────────────────────────────────────────── */
 .legal-page {
   max-width: 780px;

@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "macros/team_flag.html" import team_flag %}
+{% from "macros/user_avatar.html" import user_avatar %}
 
 {% block title %}Usuarios — Admin{% endblock %}
 
@@ -65,7 +66,7 @@
         <tr>
           <td>
             <div class="user-cell">
-              {% if u.picture %}<img src="{{ u.picture }}" alt="" class="avatar avatar-sm">{% endif %}
+              {% if u.picture %}{{ user_avatar(u, 'avatar avatar-sm', 'sm') }}{% endif %}
               {{ u.name }}
             </div>
           </td>

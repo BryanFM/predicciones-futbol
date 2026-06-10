@@ -1,0 +1,5 @@
+{% macro user_avatar(user, css_class='avatar', size='sm') %}
+{% if user and user.picture %}
+<img src="{{ avatar_url(user, size) }}" alt="" class="{{ css_class }}" loading="lazy" decoding="async" referrerpolicy="no-referrer"{% if size == 'lg' %} width="48" height="48"{% elif size == 'sm' %} width="32" height="32"{% else %} width="28" height="28"{% endif %}>
+{% endif %}
+{% endmacro %}

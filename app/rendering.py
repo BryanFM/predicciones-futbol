@@ -60,3 +60,44 @@ def render(
             db, current_user.id, _category_id_for_nav(request, ctx)
         )
     return templates.TemplateResponse(name, ctx)
+
+
+def _optional_user_from_session(request: Request) -> Optional[User]:
+    try:
+        from app.database import get_db
+
+        user_id = request.session.get("user_id")
+        if not user_id:
+            return None
+        db = next(get_db())
+        try:
+            return db.get(User, user_id)
+        finally:
+            db.close()
+    except Exception:
+        return None
+
+
+def render_error_page(
+    request: Request,
+    *,
+    status_code: int,
+    title: str,
+    message: str,
+):
+    current_user = _optional_user_from_session(request)
+    ctx: dict[str, Any] = {
+        "request": request,
+        "status_code": status_code,
+        "title": title,
+        "error_detail": message,
+        "current_user": current_user,
+        "user_points": None,
+        "message": "",
+        "error": "",
+    }
+    return templates.TemplateResponse(
+        "errors/error.html",
+        ctx,
+        status_code=status_code,
+    )

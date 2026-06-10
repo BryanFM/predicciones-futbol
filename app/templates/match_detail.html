@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% from "macros/team_flag.html" import team_flag %}
 {% from "macros/tournament_icon.html" import tournament_icon %}
+{% from "macros/user_avatar.html" import user_avatar %}
 
 {% block title %}{{ match.home_team }} vs {{ match.away_team }} — Hamster Fijas{% endblock %}
 
@@ -152,7 +153,7 @@
       <div class="prediction-info">
         <div class="prediction-author">
           {% if p.user %}
-            {% if p.user.picture %}<img src="{{ p.user.picture }}" alt="" class="avatar avatar-sm">{% endif %}
+            {% if p.user.picture %}{{ user_avatar(p.user, 'avatar avatar-sm', 'sm') }}{% endif %}
             <span class="author-name">{{ p.user.name.split()[0] }}</span>
           {% endif %}
         </div>

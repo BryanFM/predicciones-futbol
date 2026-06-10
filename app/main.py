@@ -6,18 +6,21 @@ from datetime import datetime
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, Form, HTTPException, Request
-from fastapi.exception_handlers import http_exception_handler
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.exception_handlers import http_exception_handler, request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session, joinedload
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
+from app.avatars import avatar_url as avatar_url_for_user, fetch_avatar
 from app.auth import get_current_user, oauth, require_admin, require_login, require_verified, upsert_user
 from app.database import Base, engine, get_db
 from app.hf_response import ajax_or_redirect, wants_ajax
 from app.models import Category, ChampionPrediction, Match, Prediction, PredictionResult, PredictionType, User
-from app.rendering import render, static_url, templates
+from app.rendering import render, render_error_page, static_url, templates
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -64,11 +67,69 @@ def favicon():
     )
 
 
-@app.exception_handler(HTTPException)
-async def hf_http_exception_handler(request: Request, exc: HTTPException):
+@app.get("/avatars/{user_id}", include_in_schema=False)
+async def user_avatar_image(user_id: int, db: Session = Depends(get_db)):
+    user = db.get(User, user_id)
+    if not user or not user.picture:
+        raise HTTPException(status_code=404, detail="Avatar no encontrado")
+    try:
+        body, content_type = await fetch_avatar(user.picture)
+    except Exception:
+        return FileResponse(
+            BASE_DIR / "static" / "favicon-32.png",
+            media_type="image/png",
+            headers={"Cache-Control": "public, max-age=300"},
+        )
+    return Response(
+        content=body,
+        media_type=content_type,
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
+
+
+async def _html_http_error(request: Request, status_code: int, detail: str):
     if wants_ajax(request):
-        return JSONResponse({"ok": False, "error": exc.detail}, status_code=exc.status_code)
-    return await http_exception_handler(request, exc)
+        return JSONResponse({"ok": False, "error": detail}, status_code=status_code)
+    if status_code == 404:
+        return render_error_page(
+            request,
+            status_code=404,
+            title="Página no encontrada",
+            message="El enlace no existe o el balón ya se fue del estadio. Vuelve al inicio para seguir con tus predicciones.",
+        )
+    return await http_exception_handler(request, HTTPException(status_code=status_code, detail=detail))
+
+
+@app.exception_handler(StarletteHTTPException)
+async def hf_http_exception_handler(request: Request, exc: StarletteHTTPException):
+    return await _html_http_error(request, exc.status_code, exc.detail)
+
+
+@app.exception_handler(404)
+async def hf_not_found_handler(request: Request, exc: StarletteHTTPException):
+    return await _html_http_error(request, 404, getattr(exc, "detail", "Not Found"))
+
+
+@app.exception_handler(Exception)
+async def hf_unhandled_exception_handler(request: Request, exc: Exception):
+    if isinstance(exc, HTTPException):
+        raise exc
+    if isinstance(exc, RequestValidationError):
+        return await request_validation_exception_handler(request, exc)
+    if wants_ajax(request):
+        return JSONResponse(
+            {"ok": False, "error": "Error interno del servidor"},
+            status_code=500,
+        )
+    import logging
+
+    logging.getLogger("uvicorn.error").exception("Unhandled server error")
+    return render_error_page(
+        request,
+        status_code=500,
+        title="Error del servidor",
+        message="Algo falló en nuestro lado. El hamster está revisando la jugada — inténtalo de nuevo en un momento.",
+    )
 
 
 @app.on_event("startup")
@@ -263,6 +324,7 @@ templates.env.globals["GA_MEASUREMENT_ID"] = _public_env(
 templates.env.globals["CLARITY_PROJECT_ID"] = _public_env(
     "CLARITY_PROJECT_ID", production_default="x51o85xggi"
 )
+templates.env.globals["avatar_url"] = avatar_url_for_user
 
 
 def _home_url(
