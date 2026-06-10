@@ -1,12 +1,15 @@
+import os
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
-DATABASE_URL = "sqlite:///./predicciones.db"
+_url = os.environ.get("DATABASE_URL", "sqlite:///./predicciones.db")
+# Render/Heroku entregan "postgres://..." pero SQLAlchemy requiere "postgresql://..."
+if _url.startswith("postgres://"):
+    _url = _url.replace("postgres://", "postgresql://", 1)
 
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={"check_same_thread": False},
-)
+_kwargs = {"check_same_thread": False} if _url.startswith("sqlite") else {}
+engine = create_engine(_url, connect_args=_kwargs)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
