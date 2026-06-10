@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% from "macros/team_flag.html" import team_flag %}
+{% from "macros/tournament_icon.html" import tournament_icon %}
+
+{% block title %}{{ match.home_team }} vs {{ match.away_team }} — Hamster Fijas{% endblock %}
+
+{% block content %}
+<a href="/?category_id={{ match.category_id }}" class="back-link">← Volver a partidos</a>
+
+<section class="panel match-detail-header">
+  <div class="match-detail-meta">
+    <span class="group-badge">Grupo {{ match.group_name or '—' }}</span>
+    {% if match.predictions_status == 'open' %}
+    <span class="status-badge status-open">Abierto</span>
+    {% elif match.predictions_status == 'closed' %}
+    <span class="status-badge status-closed">🔒 Cerrado</span>
+    {% else %}
+    <span class="status-badge status-finished">Finalizado</span>
+    {% endif %}
+    <time>{{ format_pet(match.match_date) }}</time>
+    {% if match.venue %}<span class="venue">{{ match.venue }}</span>{% endif %}
+  </div>
+
+  <div class="match-detail-teams">
+    <div class="match-detail-team">
+      {{ team_flag(match.home_team, 'lg') }}
+      <strong>{{ match.home_team }}</strong>
+    </div>
+    <div class="match-detail-score">
+      {% if match.is_finished %}
+      <span class="score-final">{{ match.home_score }} - {{ match.away_score }}</span>
+      {% else %}
+      <span class="vs">vs</span>
+      {% endif %}
+    </div>
+    <div class="match-detail-team away">
+      {{ team_flag(match.away_team, 'lg') }}
+      <strong>{{ match.away_team }}</strong>
+    </div>
+  </div>
+  <p class="match-detail-tournament tournament-label">
+    {{ tournament_icon(match.category, 'sm') }}
+    <span>{{ match.category.name }}{% if match.category.season %} · {{ match.category.season }}{% endif %}</span>
+  </p>
+</section>
+
+{% if current_user and current_user.is_admin %}
+<section class="panel">
+  <h3>Marcador real (admin)</h3>
+  {% if request.query_params.get('msg') %}
+  <div class="alert alert-success">{{ request.query_params.get('msg') }}</div>
+  {% endif %}
+  <form class="score-form" method="post" action="/matches/{{ match.id }}/score">
+    <input type="number" name="home_score" min="0" value="{{ match.home_score if match.home_score is not none else 0 }}">
+    <span>-</span>
+    <input type="number" name="away_score" min="0" value="{{ match.away_score if match.away_score is not none else 0 }}">
+    <button type="submit" class="btn btn-secondary btn-sm">Guardar marcador</button>
+  </form>
+  {% if match.is_finished %}
+  <form method="post" action="/matches/{{ match.id }}/score/clear" class="admin-clear-score-form" onsubmit="return confirm('¿Quitar el marcador oficial? Las predicciones volverán a pendiente.')">
+    <button type="submit" class="btn btn-danger btn-sm">Quitar marcador oficial</button>
+  </form>
+  {% endif %}
+  <form method="post" action="/matches/{{ match.id }}/delete" class="admin-delete-form" onsubmit="return confirm('¿Eliminar partido?')">
+    <button type="submit" class="btn btn-danger btn-sm">Eliminar partido</button>
+  </form>
+</section>
+{% endif %}
+
+<section class="panel">
+  <h3>Mi predicción</h3>
+
+  {% if my_predictions %}
+  {% set p = my_predictions[0] %}
+  <div class="my-score-display result-{{ p.result.value }}">
+    <div class="my-score-value">{{ score_label(p) }}</div>
+    <span class="badge badge-{{ p.result.value }}">
+      {% if p.result == PredictionResult.HIT %}✓ Marcador exacto
+      {% elif p.result == PredictionResult.MISS %}✗ No acertaste
+      {% else %}⏳ Pendiente{% endif %}
+    </span>
+    {% if current_user.is_admin or match.predictions_open %}
+    <form method="post" action="/predictions/{{ p.id }}/delete" class="delete-score-form">
+      <button type="submit" class="btn btn-danger btn-sm">Eliminar predicción</button>
+    </form>
+    {% endif %}
+  </div>
+  {% else %}
+  <p class="empty-sm">Aún no has registrado tu marcador para este partido.</p>
+  {% endif %}
+
+  {% if current_user and current_user.phone_verified and match.predictions_open %}
+  <form class="prediction-form-detail score-prediction-form" method="post" action="/predictions">
+    <input type="hidden" name="match_id" value="{{ match.id }}">
+    <input type="hidden" name="return_category_id" value="{{ match.category_id }}">
+    <h4>{% if my_predictions %}Modificar marcador{% else %}Registrar marcador{% endif %}</h4>
+    {% if my_predictions %}
+    <p class="modal-edit-hint">Puedes cambiar tu marcador hasta 5 min antes del partido.</p>
+    {% endif %}
+    <div class="score-input-row">
+      <div class="score-input-group">
+        <label>{{ match.home_team }}
+          <input type="number" name="predicted_home_score" id="detail-home-score" min="0" max="20" required
+            autocomplete="off"
+            value="{{ my_predictions[0].predicted_home_score if my_predictions else 0 }}">
+        </label>
+        <div class="goal-icons" id="detail-home-icons" aria-live="polite"></div>
+      </div>
+      <span class="score-separator">-</span>
+      <div class="score-input-group">
+        <label>{{ match.away_team }}
+          <input type="number" name="predicted_away_score" id="detail-away-score" min="0" max="20" required
+            autocomplete="off"
+            value="{{ my_predictions[0].predicted_away_score if my_predictions else 0 }}">
+        </label>
+        <div class="goal-icons" id="detail-away-icons" aria-live="polite"></div>
+      </div>
+    </div>
+    <button type="submit" class="btn btn-primary">{% if my_predictions %}Actualizar marcador{% else %}Guardar marcador{% endif %}</button>
+  </form>
+  <script src="{{ static_url('goal-icons.js') }}"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!window.HFGoalIcons) return;
+      HFGoalIcons.bindGoalIcons(
+        document.getElementById('detail-home-score'),
+        document.getElementById('detail-home-icons')
+      );
+      HFGoalIcons.bindGoalIcons(
+        document.getElementById('detail-away-score'),
+        document.getElementById('detail-away-icons')
+      );
+    });
+  </script>
+  {% elif not current_user %}
+  <p class="login-hint"><a href="/auth/login">Inicia sesión</a> para registrar predicciones.</p>
+  {% elif not current_user.phone_verified %}
+  <p class="login-hint"><a href="/verificar-telefono">Verifica tu celular</a> para participar.</p>
+  {% elif match.is_finished %}
+  <p class="predictions-closed">🔒 Predicciones cerradas — ya hay resultado oficial</p>
+  {% elif not match.predictions_open %}
+  <p class="predictions-closed">🔒 Predicciones cerradas — 5 min antes del inicio</p>
+  {% endif %}
+</section>
+
+{% if other_predictions %}
+<section class="panel">
+  <h3>Marcadores de otros usuarios ({{ other_predictions|length }})</h3>
+  <ul class="prediction-list compact">
+    {% for p in other_predictions %}
+    <li class="prediction-item result-{{ p.result.value }}">
+      <div class="prediction-info">
+        <div class="prediction-author">
+          {% if p.user %}
+            {% if p.user.picture %}<img src="{{ p.user.picture }}" alt="" class="avatar avatar-sm">{% endif %}
+            <span class="author-name">{{ p.user.name.split()[0] }}</span>
+          {% endif %}
+        </div>
+        <strong>{{ score_label(p) }}</strong>
+      </div>
+      <span class="badge badge-{{ p.result.value }}">
+        {% if p.result == PredictionResult.HIT %}✓{% elif p.result == PredictionResult.MISS %}✗{% else %}⏳{% endif %}
+      </span>
+      {% if current_user and current_user.is_admin %}
+      <form method="post" action="/predictions/{{ p.id }}/result" class="result-form">
+        <select name="result">
+          <option value="pending" {% if p.result == PredictionResult.PENDING %}selected{% endif %}>Pendiente</option>
+          <option value="hit" {% if p.result == PredictionResult.HIT %}selected{% endif %}>Acertada</option>
+          <option value="miss" {% if p.result == PredictionResult.MISS %}selected{% endif %}>Fallida</option>
+        </select>
+        <button type="submit" class="btn btn-secondary btn-sm">OK</button>
+      </form>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% endblock %}

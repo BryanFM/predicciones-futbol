@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Verificar teléfono — Hamster Fijas{% endblock %}
+
+{% block content %}
+{% set raw_phone = pending_phone or current_user.phone_number or '' %}
+<section class="panel verify-panel">
+  <img src="/static/hamster.png" alt="" class="verify-img">
+  <h2>Verifica tu celular</h2>
+  <p class="verify-desc">Para participar en predicciones necesitas confirmar tu número. Te enviaremos un código por SMS.</p>
+
+  {% if sms_dev_mode and not twilio_available %}
+  <div class="verify-mode-banner is-dev">
+    <strong>Modo desarrollo</strong> — sin Twilio configurado, usa el código <strong>123456</strong>.
+  </div>
+  {% endif %}
+
+  <form class="verify-form" id="verify-send-form" method="post" action="/verificar-telefono/enviar">
+    <label class="phone-field-label">Número de celular
+      <div class="phone-input-group">
+        <span class="phone-prefix" aria-hidden="true">+51</span>
+        <input type="tel" id="phone-local-input" class="phone-local-input"
+               required pattern="9[0-9]{8}" maxlength="9" minlength="9"
+               placeholder="987654321" inputmode="numeric" autocomplete="tel-national"
+               data-initial="{{ raw_phone }}"
+               aria-label="Número móvil peruano, 9 dígitos">
+      </div>
+      <input type="hidden" name="phone" id="phone-full-input" value="{{ raw_phone }}">
+    </label>
+    <button type="submit" class="btn btn-primary">Enviar código</button>
+  </form>
+
+  <form class="verify-form" method="post" action="/verificar-telefono/confirmar">
+    <label>Código de 6 dígitos
+      <input type="text" name="code" required pattern="[0-9]{6}" maxlength="6"
+             placeholder="{% if twilio_available %}Código del SMS{% else %}123456{% endif %}"
+             inputmode="numeric" autocomplete="one-time-code">
+    </label>
+    <input type="hidden" name="phone" id="confirm-phone-input" value="{{ raw_phone }}">
+    <button type="submit" class="btn btn-secondary">Confirmar verificación</button>
+  </form>
+
+  <p class="verify-hint">Ingresa los <strong>9 dígitos</strong> de tu celular. El SMS se envía a <strong>+51</strong> + tu número.</p>
+</section>
+<script src="{{ static_url('verify-phone.js') }}" defer></script>
+{% endblock %}

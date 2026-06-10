@@ -1,9 +1,15 @@
+# Blueprint Render — https://render.com/docs/blueprint-spec
+# Repo: https://github.com/BryanFM/predicciones-futbol
+# Producción: https://predicciones-futbol-tmyr.onrender.com/
+
 services:
   - type: web
     name: predicciones-futbol
     runtime: python
+    branch: master
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -11,15 +17,25 @@ services:
           property: connectionString
       - key: PYTHON_VERSION
         value: 3.12.0
+      - key: ENVIRONMENT
+        value: production
       - key: SECRET_KEY
         generateValue: true
       - key: HTTPS_ONLY
+        value: "true"
+      - key: ENFORCE_UNIQUE_PHONE
         value: "true"
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: GOOGLE_CLIENT_SECRET
         sync: false
       - key: ADMIN_EMAILS
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_VERIFY_SERVICE_SID
         sync: false
 
 databases:

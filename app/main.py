@@ -1,3 +1,4 @@
+import app.env  # noqa: F401
 import os
 from typing import Optional
 
@@ -5,20 +6,39 @@ from datetime import datetime
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.exception_handlers import http_exception_handler
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session, joinedload
+from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
-from app.auth import get_current_user, oauth, require_admin, require_login, upsert_user
+from app.auth import get_current_user, oauth, require_admin, require_login, require_verified, upsert_user
 from app.database import Base, engine, get_db
-from app.models import Category, Match, Prediction, PredictionResult, PredictionType, User
+from app.hf_response import ajax_or_redirect, wants_ajax
+from app.models import Category, ChampionPrediction, Match, Prediction, PredictionResult, PredictionType, User
+from app.rendering import render, static_url, templates
 
 BASE_DIR = Path(__file__).resolve().parent
 
-app = FastAPI(title="Hamster Fijas")
+from app.routers import admin, verify
 
+app = FastAPI(title="Hamster Fijas")
+app.include_router(verify.router)
+app.include_router(admin.router)
+
+
+class NoCacheHTMLMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        if "text/html" in response.headers.get("content-type", ""):
+            response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+        return response
+
+
+app.add_middleware(NoCacheHTMLMiddleware)
 app.add_middleware(
     SessionMiddleware,
     secret_key=os.environ.get("SECRET_KEY", "dev-secret-change-in-production"),
@@ -28,11 +48,23 @@ app.add_middleware(
 )
 
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
-templates = Jinja2Templates(directory=BASE_DIR / "templates")
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
+@app.exception_handler(HTTPException)
+async def hf_http_exception_handler(request: Request, exc: HTTPException):
+    if wants_ajax(request):
+        return JSONResponse({"ok": False, "error": exc.detail}, status_code=exc.status_code)
+    return await http_exception_handler(request, exc)
 
 
 @app.on_event("startup")
 def on_startup():
+    _validate_oauth_config()
     Base.metadata.create_all(bind=engine)
     _run_migrations()
     db = next(get_db())
@@ -43,8 +75,22 @@ def on_startup():
         db.close()
 
 
+def _validate_oauth_config() -> None:
+    client_id = os.environ.get("GOOGLE_CLIENT_ID", "").strip()
+    client_secret = os.environ.get("GOOGLE_CLIENT_SECRET", "").strip()
+    if not client_id or not client_secret:
+        import logging
+        logging.getLogger("uvicorn.error").warning(
+            "GOOGLE_CLIENT_ID o GOOGLE_CLIENT_SECRET vacíos. "
+            "Configura .env y reinicia el servidor (make dev)."
+        )
+
+
 def _run_migrations():
     from sqlalchemy import text
+
+    from app.phone_policy import enforce_unique_phone
+
     is_pg = "postgresql" in str(engine.url)
     with engine.begin() as conn:
         if is_pg:
@@ -52,15 +98,109 @@ def _run_migrations():
                 "ALTER TABLE predictions ADD COLUMN IF NOT EXISTS user_id INTEGER"
                 " REFERENCES users(id) ON DELETE SET NULL;"
             ))
+            conn.execute(text(
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_number VARCHAR(20);"
+            ))
+            conn.execute(text(
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_verified BOOLEAN"
+                " NOT NULL DEFAULT FALSE;"
+            ))
+            conn.execute(text(
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_verified_at TIMESTAMP;"
+            ))
+            conn.execute(text(
+                "ALTER TABLE categories ADD COLUMN IF NOT EXISTS description VARCHAR(255);"
+            ))
+            conn.execute(text(
+                "ALTER TABLE categories ADD COLUMN IF NOT EXISTS season VARCHAR(20);"
+            ))
+            conn.execute(text(
+                "ALTER TABLE categories ADD COLUMN IF NOT EXISTS is_active BOOLEAN"
+                " NOT NULL DEFAULT TRUE;"
+            ))
+            if enforce_unique_phone():
+                conn.execute(text(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS ix_users_phone_number"
+                    " ON users (phone_number) WHERE phone_number IS NOT NULL;"
+                ))
+            else:
+                conn.execute(text("DROP INDEX IF EXISTS ix_users_phone_number"))
+            conn.execute(text(
+                "ALTER TABLE predictions ADD COLUMN IF NOT EXISTS predicted_home_score INTEGER;"
+            ))
+            conn.execute(text(
+                "ALTER TABLE predictions ADD COLUMN IF NOT EXISTS predicted_away_score INTEGER;"
+            ))
+            conn.execute(text(
+                "ALTER TABLE categories ADD COLUMN IF NOT EXISTS starts_at TIMESTAMP;"
+            ))
+            conn.execute(text(
+                "ALTER TABLE categories ADD COLUMN IF NOT EXISTS champion_team VARCHAR(100);"
+            ))
+            conn.execute(text(
+                "ALTER TABLE categories ADD COLUMN IF NOT EXISTS champion_closes_at TIMESTAMP;"
+            ))
+            conn.execute(text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS ix_predictions_user_match_type"
+                " ON predictions (user_id, match_id, type);"
+            ))
+            conn.execute(text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS ix_champion_predictions_user_category"
+                " ON champion_predictions (user_id, category_id);"
+            ))
         else:
-            cols = [row[1] for row in conn.execute(text("PRAGMA table_info(predictions)"))]
+            user_cols = {row[1] for row in conn.execute(text("PRAGMA table_info(users)"))}
+            if "phone_number" not in user_cols:
+                conn.execute(text("ALTER TABLE users ADD COLUMN phone_number VARCHAR(20);"))
+            if "phone_verified" not in user_cols:
+                conn.execute(text(
+                    "ALTER TABLE users ADD COLUMN phone_verified BOOLEAN NOT NULL DEFAULT 0;"
+                ))
+            if "phone_verified_at" not in user_cols:
+                conn.execute(text("ALTER TABLE users ADD COLUMN phone_verified_at DATETIME;"))
+
+            cat_cols = {row[1] for row in conn.execute(text("PRAGMA table_info(categories)"))}
+            if "description" not in cat_cols:
+                conn.execute(text("ALTER TABLE categories ADD COLUMN description VARCHAR(255);"))
+            if "season" not in cat_cols:
+                conn.execute(text("ALTER TABLE categories ADD COLUMN season VARCHAR(20);"))
+            if "is_active" not in cat_cols:
+                conn.execute(text(
+                    "ALTER TABLE categories ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT 1;"
+                ))
+
+            cols = {row[1] for row in conn.execute(text("PRAGMA table_info(predictions)"))}
             if "user_id" not in cols:
                 conn.execute(text(
                     "ALTER TABLE predictions ADD COLUMN user_id INTEGER REFERENCES users(id);"
                 ))
+            if "predicted_home_score" not in cols:
+                conn.execute(text("ALTER TABLE predictions ADD COLUMN predicted_home_score INTEGER;"))
+            if "predicted_away_score" not in cols:
+                conn.execute(text("ALTER TABLE predictions ADD COLUMN predicted_away_score INTEGER;"))
+
+            if "starts_at" not in cat_cols:
+                conn.execute(text("ALTER TABLE categories ADD COLUMN starts_at DATETIME;"))
+            if "champion_team" not in cat_cols:
+                conn.execute(text("ALTER TABLE categories ADD COLUMN champion_team VARCHAR(100);"))
+            if "champion_closes_at" not in cat_cols:
+                conn.execute(text("ALTER TABLE categories ADD COLUMN champion_closes_at DATETIME;"))
+
+            conn.execute(text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS ix_predictions_user_match_type"
+                " ON predictions (user_id, match_id, type);"
+            ))
+            conn.execute(text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS ix_champion_predictions_user_category"
+                " ON champion_predictions (user_id, category_id);"
+            ))
 
 
 def prediction_label(p: Prediction) -> str:
+    if p.type == PredictionType.SCORE:
+        if p.predicted_home_score is not None and p.predicted_away_score is not None:
+            return f"Marcador: {p.predicted_home_score} - {p.predicted_away_score}"
+        return "Marcador"
     if p.type == PredictionType.DOUBLE_CHANCE:
         labels = {"1X": "Local o Empate", "X2": "Empate o Visitante", "12": "Local o Visitante"}
         return f"Doble oportunidad: {labels.get(p.double_chance or '', p.double_chance)}"
@@ -68,10 +208,49 @@ def prediction_label(p: Prediction) -> str:
     return f"{direction} {p.over_under_line} goles"
 
 
+from app.predictions_view import (
+    match_hamster_gif,
+    match_user_score,
+    score_label,
+    user_has_predictions,
+    SHOW_MATCH_HAMSTER_GIFS,
+)
+from app.flags import team_flag_url
+from app.timezone import format_pet, pet_timestamp_ms
+from app.points import CHAMPION_HIT_POINTS, SCORE_HIT_POINTS, leaderboard, user_hamster_points
+
+templates.env.globals["static_url"] = static_url
 templates.env.globals["prediction_label"] = prediction_label
+templates.env.globals["format_pet"] = format_pet
+templates.env.globals["pet_timestamp_ms"] = pet_timestamp_ms
+templates.env.globals["match_user_score"] = match_user_score
+templates.env.globals["match_hamster_gif"] = match_hamster_gif
+templates.env.globals["SHOW_MATCH_HAMSTER_GIFS"] = SHOW_MATCH_HAMSTER_GIFS
+templates.env.globals["user_has_predictions"] = user_has_predictions
+templates.env.globals["score_label"] = score_label
+templates.env.globals["team_flag_url"] = team_flag_url
+templates.env.globals["SCORE_HIT_POINTS"] = SCORE_HIT_POINTS
+templates.env.globals["CHAMPION_HIT_POINTS"] = CHAMPION_HIT_POINTS
 templates.env.globals["PredictionResult"] = PredictionResult
 templates.env.globals["PredictionType"] = PredictionType
 
+
+def _home_url(
+    category_id: Optional[int] = None,
+    match_date: Optional[str] = None,
+    group: Optional[str] = None,
+) -> str:
+    params = []
+    if category_id:
+        params.append(f"category_id={category_id}")
+    if match_date:
+        params.append(f"match_date={match_date}")
+    if group:
+        params.append(f"group={group}")
+    return "/?" + "&".join(params) if params else "/"
+
+
+templates.env.globals["home_url"] = _home_url
 
 # ── Auth ────────────────────────────────────────────────────────────────────
 
@@ -93,6 +272,8 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
         picture=info.get("picture", ""),
     )
     request.session["user_id"] = user.id
+    if not user.phone_verified and not user.is_admin:
+        return RedirectResponse("/verificar-telefono", status_code=303)
     return RedirectResponse("/", status_code=303)
 
 
@@ -108,11 +289,32 @@ def auth_logout(request: Request):
 def home(
     request: Request,
     category_id: Optional[int] = None,
+    match_date: Optional[str] = None,
+    group: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user),
 ):
-    categories = db.query(Category).order_by(Category.name).all()
+    from app.services import (
+        champion_predictions_open,
+        filter_matches_by_date,
+        filter_matches_by_group,
+        get_available_groups,
+        get_available_match_dates,
+        get_champion_deadline,
+        get_champion_prediction_stats,
+        get_match_outcome_stats_batch,
+        get_stats,
+        get_tournament_starts_at,
+        get_tournament_teams,
+        get_user_champion_prediction,
+    )
+
+    categories_query = db.query(Category).order_by(Category.name)
+    if not (current_user and current_user.is_admin):
+        categories_query = categories_query.filter(Category.is_active.is_(True))
+    categories = categories_query.all()
     selected = category_id or (categories[0].id if categories else None)
+    selected_category = next((c for c in categories if c.id == selected), None)
 
     matches_query = (
         db.query(Match)
@@ -122,33 +324,141 @@ def home(
     if selected:
         matches_query = matches_query.filter(Match.category_id == selected)
 
+    matches_query, selected_date = filter_matches_by_date(matches_query, match_date) if match_date else (matches_query, None)
+    matches_query, selected_group = filter_matches_by_group(matches_query, group)
     matches = matches_query.all()
-
-    from app.services import get_stats
+    available_dates = get_available_match_dates(db, selected)
+    available_groups = get_available_groups(db, selected)
     stats = get_stats(db, selected)
 
-    return templates.TemplateResponse(
+    tournament_teams: list[str] = []
+    my_champion = None
+    champion_open = False
+    champion_stats = {"total": 0, "teams": [], "by_team": {}}
+    match_outcome_stats: dict = {}
+    countdown_ms = None
+    countdown_label = ""
+
+    champion_deadline = None
+    if selected_category:
+        tournament_teams = get_tournament_teams(db, selected)
+        champion_open = champion_predictions_open(db, selected_category)
+        champion_deadline = get_champion_deadline(db, selected_category)
+        champion_stats = get_champion_prediction_stats(db, selected_category.id)
+        starts_at = get_tournament_starts_at(db, selected_category)
+        if starts_at:
+            countdown_ms = pet_timestamp_ms(starts_at)
+            countdown_label = selected_category.name
+        if current_user:
+            my_champion = get_user_champion_prediction(db, current_user.id, selected_category.id)
+
+    if matches:
+        match_outcome_stats = get_match_outcome_stats_batch(db, [m.id for m in matches])
+
+    return render(
         "index.html",
         {
-            "request": request,
-            "current_user": current_user,
             "categories": categories,
+            "selected_category": selected_category,
             "selected_category_id": selected,
+            "selected_match_date": selected_date or "",
+            "selected_group": selected_group or "",
+            "available_dates": available_dates,
+            "available_groups": available_groups,
             "matches": matches,
             "stats": stats,
+            "tournament_teams": tournament_teams,
+            "my_champion": my_champion,
+            "champion_open": champion_open,
+            "champion_deadline": champion_deadline,
+            "champion_stats": champion_stats,
+            "match_outcome_stats": match_outcome_stats,
+            "countdown_ms": countdown_ms,
+            "countdown_label": countdown_label,
         },
+        request=request,
+        db=db,
+        current_user=current_user,
     )
 
 
 @app.get("/proximamente", response_class=HTMLResponse)
-def proximamente(
+def puntos_page(
     request: Request,
+    category_id: Optional[int] = None,
+    db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user),
 ):
-    return templates.TemplateResponse("proximamente.html", {
-        "request": request,
-        "current_user": current_user,
-    })
+    categories = db.query(Category).filter(Category.is_active.is_(True)).order_by(Category.name).all()
+    selected = category_id or (categories[0].id if categories else None)
+    selected_category = next((c for c in categories if c.id == selected), None)
+    board = leaderboard(db, selected)
+    my_points = user_hamster_points(db, current_user.id, selected) if current_user else None
+    countdown_ms = None
+    if selected_category:
+        from app.services import get_tournament_starts_at
+        starts_at = get_tournament_starts_at(db, selected_category)
+        if starts_at:
+            countdown_ms = pet_timestamp_ms(starts_at)
+
+    return render(
+        "proximamente.html",
+        {
+            "categories": categories,
+            "selected_category_id": selected,
+            "selected_category": selected_category,
+            "leaderboard": board,
+            "my_points": my_points,
+            "countdown_ms": countdown_ms,
+        },
+        request=request,
+        db=db,
+        current_user=current_user,
+    )
+
+
+@app.get("/partidos/{match_id}", response_class=HTMLResponse)
+def match_predictions_page(
+    match_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user),
+):
+    match = (
+        db.query(Match)
+        .options(joinedload(Match.predictions).joinedload(Prediction.user), joinedload(Match.category))
+        .filter(Match.id == match_id)
+        .first()
+    )
+    if not match:
+        raise HTTPException(404, "Partido no encontrado")
+
+    my_predictions = [
+        p for p in match.predictions
+        if current_user and p.user_id == current_user.id and p.type == PredictionType.SCORE
+    ]
+    others = []
+    if current_user:
+        others = [
+            p for p in match.predictions
+            if (
+                p.type == PredictionType.SCORE
+                and p.user_id is not None
+                and p.user_id != current_user.id
+            )
+        ]
+
+    return render(
+        "match_detail.html",
+        {
+            "match": match,
+            "my_predictions": my_predictions,
+            "other_predictions": others,
+        },
+        request=request,
+        db=db,
+        current_user=current_user,
+    )
 
 
 # ── Admin: Categories ────────────────────────────────────────────────────────
@@ -156,6 +466,8 @@ def proximamente(
 @app.post("/categories")
 def create_category(
     name: str = Form(...),
+    description: str = Form(""),
+    season: str = Form(""),
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ):
@@ -163,10 +475,15 @@ def create_category(
     if not name:
         raise HTTPException(400, "Nombre requerido")
     if db.query(Category).filter(Category.name == name).first():
-        raise HTTPException(400, "La categoría ya existe")
-    db.add(Category(name=name))
+        raise HTTPException(400, "El torneo ya existe")
+    db.add(Category(
+        name=name,
+        description=description.strip() or None,
+        season=season.strip() or None,
+        is_active=True,
+    ))
     db.commit()
-    return RedirectResponse("/", status_code=303)
+    return RedirectResponse("/admin/torneos", status_code=303)
 
 
 # ── Admin: Matches ───────────────────────────────────────────────────────────
@@ -199,23 +516,79 @@ def create_match(
     return RedirectResponse(f"/?category_id={category_id}", status_code=303)
 
 
+def _official_score_payload(db: Session, match: Match, admin: User) -> dict:
+    data: dict = {
+        "match_id": match.id,
+        "home_score": match.home_score,
+        "away_score": match.away_score,
+        "finished": match.is_finished,
+        "predictions_open": match.predictions_open,
+        "official_label": (
+            f"{match.home_score} - {match.away_score}" if match.is_finished else None
+        ),
+    }
+    pred = (
+        db.query(Prediction)
+        .filter(
+            Prediction.match_id == match.id,
+            Prediction.user_id == admin.id,
+            Prediction.type == PredictionType.SCORE,
+        )
+        .first()
+    )
+    if pred:
+        data["result"] = pred.result.value
+    return data
+
+
 @app.post("/matches/{match_id}/score")
 def update_score(
+    request: Request,
     match_id: int,
     home_score: int = Form(...),
     away_score: int = Form(...),
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    current_user: User = Depends(require_admin),
 ):
     match = db.query(Match).options(joinedload(Match.predictions)).get(match_id)
     if not match:
         raise HTTPException(404)
     match.home_score = home_score
     match.away_score = away_score
-    db.commit()
     from app.services import reevaluate_match_predictions
     reevaluate_match_predictions(db, match)
-    return RedirectResponse(f"/?category_id={match.category_id}", status_code=303)
+    return ajax_or_redirect(
+        request,
+        f"/partidos/{match_id}",
+        _official_score_payload(db, match, current_user),
+    )
+
+
+@app.post("/matches/{match_id}/score/clear")
+def clear_score(
+    request: Request,
+    match_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    match = db.query(Match).options(joinedload(Match.predictions)).get(match_id)
+    if not match:
+        raise HTTPException(404)
+    if not match.is_finished:
+        return ajax_or_redirect(
+            request,
+            f"/partidos/{match_id}",
+            _official_score_payload(db, match, current_user),
+        )
+    match.home_score = None
+    match.away_score = None
+    from app.services import reevaluate_match_predictions
+    reevaluate_match_predictions(db, match)
+    return ajax_or_redirect(
+        request,
+        f"/partidos/{match_id}?msg=Marcador+oficial+eliminado",
+        _official_score_payload(db, match, current_user),
+    )
 
 
 @app.post("/matches/{match_id}/delete")
@@ -237,36 +610,80 @@ def delete_match(
 
 @app.post("/predictions")
 def create_prediction(
+    request: Request,
     match_id: int = Form(...),
-    type: str = Form(...),
-    double_chance: str = Form(""),
-    over_under_line: float = Form(2.5),
-    over_under_pick: str = Form(""),
-    notes: str = Form(""),
+    predicted_home_score: int = Form(...),
+    predicted_away_score: int = Form(...),
+    return_category_id: Optional[int] = Form(None),
+    return_match_date: str = Form(""),
+    return_group: str = Form(""),
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_login),
+    current_user: User = Depends(require_verified),
 ):
     match = db.get(Match, match_id)
     if not match:
         raise HTTPException(404)
+    if not match.predictions_open:
+        if match.is_finished:
+            raise HTTPException(403, "No puedes modificar predicciones: el partido ya tiene resultado oficial")
+        raise HTTPException(403, "Las predicciones cerraron 5 minutos antes del inicio")
+    if predicted_home_score < 0 or predicted_away_score < 0:
+        raise HTTPException(400, "Marcador inválido")
 
-    prediction = Prediction(
-        match_id=match_id,
-        user_id=current_user.id,
-        type=PredictionType(type),
-        double_chance=double_chance or None,
-        over_under_line=over_under_line if type == "over_under" else None,
-        over_under_pick=over_under_pick or None,
-        notes=notes.strip() or None,
+    existing = (
+        db.query(Prediction)
+        .filter(
+            Prediction.match_id == match_id,
+            Prediction.user_id == current_user.id,
+            Prediction.type == PredictionType.SCORE,
+        )
+        .first()
     )
+
+    if existing:
+        if existing.user_id != current_user.id:
+            raise HTTPException(403, "No puedes modificar la predicción de otro usuario")
+        existing.predicted_home_score = predicted_home_score
+        existing.predicted_away_score = predicted_away_score
+        if match.is_finished:
+            from app.services import evaluate_prediction
+            existing.result = evaluate_prediction(existing, match)
+        else:
+            existing.result = PredictionResult.PENDING
+        prediction = existing
+    else:
+        prediction = Prediction(
+            match_id=match_id,
+            user_id=current_user.id,
+            type=PredictionType.SCORE,
+            predicted_home_score=predicted_home_score,
+            predicted_away_score=predicted_away_score,
+        )
+        db.add(prediction)
 
     if match.is_finished:
         from app.services import evaluate_prediction
         prediction.result = evaluate_prediction(prediction, match)
 
-    db.add(prediction)
     db.commit()
-    return RedirectResponse(f"/?category_id={match.category_id}", status_code=303)
+
+    cat_id = return_category_id or match.category_id
+    url = _home_url(cat_id, return_match_date.strip() or None, return_group.strip() or None)
+    from app.points import user_hamster_points
+
+    return ajax_or_redirect(
+        request,
+        url,
+        {
+            "match_id": match_id,
+            "predicted_home_score": predicted_home_score,
+            "predicted_away_score": predicted_away_score,
+            "label": f"{predicted_home_score} - {predicted_away_score}",
+            "result": prediction.result.value,
+            "updated": existing is not None,
+            "user_points": user_hamster_points(db, current_user.id, cat_id),
+        },
+    )
 
 
 @app.post("/predictions/{prediction_id}/result")
@@ -281,7 +698,7 @@ def set_prediction_result(
         raise HTTPException(404)
     prediction.result = PredictionResult(result)
     db.commit()
-    return RedirectResponse(f"/?category_id={prediction.match.category_id}", status_code=303)
+    return RedirectResponse(f"/partidos/{prediction.match_id}", status_code=303)
 
 
 @app.post("/predictions/{prediction_id}/delete")
@@ -295,7 +712,88 @@ def delete_prediction(
         raise HTTPException(404)
     if not current_user.is_admin and prediction.user_id != current_user.id:
         raise HTTPException(403, "No puedes eliminar predicciones ajenas")
-    category_id = prediction.match.category_id
+    if not current_user.is_admin and not prediction.match.predictions_open:
+        raise HTTPException(403, "No puedes eliminar predicciones después del cierre")
     db.delete(prediction)
     db.commit()
-    return RedirectResponse(f"/?category_id={category_id}", status_code=303)
+    return RedirectResponse(f"/?category_id={prediction.match.category_id}", status_code=303)
+
+
+@app.post("/champion-predictions")
+def save_champion_prediction(
+    request: Request,
+    category_id: int = Form(...),
+    champion_team: str = Form(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_verified),
+):
+    from app.flags import team_flag_url
+    from app.services import champion_predictions_open, get_tournament_teams
+
+    category = db.get(Category, category_id)
+    if not category:
+        raise HTTPException(404, "Torneo no encontrado")
+    if not champion_predictions_open(db, category):
+        raise HTTPException(403, "Las predicciones de campeón ya cerraron")
+
+    team = champion_team.strip()
+    allowed = get_tournament_teams(db, category_id)
+    if team not in allowed:
+        raise HTTPException(400, "Selección no válida para este torneo")
+
+    existing = (
+        db.query(ChampionPrediction)
+        .filter(
+            ChampionPrediction.user_id == current_user.id,
+            ChampionPrediction.category_id == category_id,
+        )
+        .first()
+    )
+    if existing:
+        existing.champion_team = team
+        existing.result = PredictionResult.PENDING
+        cp = existing
+    else:
+        cp = ChampionPrediction(
+            user_id=current_user.id,
+            category_id=category_id,
+            champion_team=team,
+        )
+        db.add(cp)
+
+    if category.champion_decided and category.champion_team:
+        winner = category.champion_team.strip()
+        cp.result = PredictionResult.HIT if team == winner else PredictionResult.MISS
+
+    db.commit()
+    from app.points import user_hamster_points
+    from app.services import get_champion_prediction_stats
+
+    stats = get_champion_prediction_stats(db, category_id)
+    champion_stats = {
+        "total": stats["total"],
+        "by_team": stats["by_team"],
+        "teams": [
+            {
+                "team": row["team"],
+                "count": row["count"],
+                "pct": row["pct"],
+                "flag_url": team_flag_url(row["team"]),
+            }
+            for row in stats["teams"]
+        ],
+    }
+
+    return ajax_or_redirect(
+        request,
+        f"/?category_id={category_id}#campeon",
+        {
+            "category_id": category_id,
+            "champion_team": team,
+            "flag_url": team_flag_url(team),
+            "result": cp.result.value,
+            "updated": existing is not None,
+            "user_points": user_hamster_points(db, current_user.id, category_id),
+            "champion_stats": champion_stats,
+        },
+    )

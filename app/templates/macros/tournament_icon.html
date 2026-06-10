@@ -1,0 +1,10 @@
+{% macro tournament_icon(category=None, css_class='') %}
+<img src="{{ static_url('iconworldcup.png') }}" alt="" class="tournament-icon {{ css_class }}" loading="lazy" width="22" height="22">
+{% endmacro %}
+
+{% macro tournament_label(category, extra='') %}
+<span class="tournament-label">
+  {{ tournament_icon(category, 'xs') }}
+  <span>{{ category.name }}{% if extra %}{{ extra }}{% endif %}</span>
+</span>
+{% endmacro %}

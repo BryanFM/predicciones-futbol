@@ -1,0 +1,8 @@
+{% macro team_flag(team_name, css_class='') %}
+{% set flag = team_flag_url(team_name) %}
+{% if flag %}
+<img src="{{ flag }}" alt="" class="team-flag {{ css_class }}" loading="lazy" width="28" height="21">
+{% else %}
+<span class="team-badge sm {{ css_class }}">{{ team_name[:2]|upper }}</span>
+{% endif %}
+{% endmacro %}

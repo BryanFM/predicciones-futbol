@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Torneos — Admin{% endblock %}
+
+{% block content %}
+<section class="admin-page-header">
+  <h2>Gestión de torneos</h2>
+</section>
+
+{% if request.query_params.get('msg') %}
+<div class="alert alert-success">{{ request.query_params.get('msg') }}</div>
+{% endif %}
+{% if request.query_params.get('error') %}
+<div class="alert alert-error">{{ request.query_params.get('error') }}</div>
+{% endif %}
+
+<section class="panel">
+  <h3>Nuevo torneo</h3>
+  <form class="grid-form" method="post" action="/admin/torneos">
+    <label>Nombre<input type="text" name="name" required placeholder="Liga 1, Champions League…"></label>
+    <label>Temporada<input type="text" name="season" placeholder="2026"></label>
+    <label class="span-2">Descripción<input type="text" name="description" placeholder="Opcional"></label>
+    <label class="checkbox-label span-2">
+      <input type="checkbox" name="is_active" checked> Activo (visible para usuarios)
+    </label>
+    <div class="span-2"><button type="submit" class="btn btn-primary">Crear torneo</button></div>
+  </form>
+</section>
+
+<section class="panel">
+  <h3>Torneos registrados ({{ tournaments|length }})</h3>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Temporada</th>
+          <th>Partidos</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in tournaments %}
+        <tr>
+          <td>
+            <form class="inline-edit-form" method="post" action="/admin/torneos/{{ t.id }}/edit">
+              <label class="sr-only" for="name-{{ t.id }}">Nombre</label>
+              <input id="name-{{ t.id }}" type="text" name="name" value="{{ t.name }}" required class="inline-input">
+              <label class="sr-only" for="season-{{ t.id }}">Temporada</label>
+              <input id="season-{{ t.id }}" type="text" name="season" value="{{ t.season or '' }}" placeholder="Temporada" class="inline-input inline-input-sm">
+              <label class="sr-only" for="desc-{{ t.id }}">Descripción</label>
+              <input id="desc-{{ t.id }}" type="text" name="description" value="{{ t.description or '' }}" placeholder="Descripción" class="inline-input inline-input-sm">
+              <label>Inicio torneo (PET)
+                <input type="datetime-local" name="starts_at" value="{{ t.starts_at.strftime('%Y-%m-%dT%H:%M') if t.starts_at else '' }}" class="inline-input inline-input-sm">
+              </label>
+              <label>Cierre campeón (PET)
+                <input type="datetime-local" name="champion_closes_at" value="{{ t.champion_closes_at.strftime('%Y-%m-%dT%H:%M') if t.champion_closes_at else '' }}" class="inline-input inline-input-sm" placeholder="Fin fase de grupos">
+              </label>
+              <label>Campeón oficial
+                <input type="text" name="champion_team" value="{{ t.champion_team or '' }}" placeholder="Equipo campeón" class="inline-input inline-input-sm">
+              </label>
+              <button type="submit" class="btn btn-primary btn-sm">Guardar</button>
+            </form>
+          </td>
+          <td>{{ t.season or '—' }}</td>
+          <td>{{ t.matches|length }}</td>
+          <td>
+            {% if t.is_active %}
+            <span class="badge badge-hit">Activo</span>
+            {% else %}
+            <span class="badge badge-pending">Inactivo</span>
+            {% endif %}
+          </td>
+          <td class="actions-cell">
+            <form method="post" action="/admin/torneos/{{ t.id }}/toggle">
+              <button type="submit" class="btn btn-secondary btn-sm">{{ 'Desactivar' if t.is_active else 'Activar' }}</button>
+            </form>
+            {% if t.matches|length == 0 %}
+            <form method="post" action="/admin/torneos/{{ t.id }}/delete" onsubmit="return confirm('¿Eliminar torneo?')">
+              <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+            </form>
+            {% endif %}
+            <a href="/?category_id={{ t.id }}" class="btn btn-outline btn-sm">Ver partidos</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

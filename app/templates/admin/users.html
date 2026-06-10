@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% from "macros/team_flag.html" import team_flag %}
+
+{% block title %}Usuarios — Admin{% endblock %}
+
+{% block content %}
+<section class="admin-page-header">
+  <h2>Usuarios registrados</h2>
+</section>
+
+{% if request.query_params.get('msg') %}
+<div class="alert alert-success">{{ request.query_params.get('msg') }}</div>
+{% endif %}
+{% if request.query_params.get('error') %}
+<div class="alert alert-error">{{ request.query_params.get('error') }}</div>
+{% endif %}
+
+<div class="stats-grid stats-compact">
+  <div class="stat-card"><span class="stat-label">Total</span><span class="stat-value">{{ stats.total }}</span></div>
+  <div class="stat-card hit"><span class="stat-label">Verificados</span><span class="stat-value">{{ stats.verified }}</span></div>
+  <div class="stat-card miss"><span class="stat-label">Sin verificar</span><span class="stat-value">{{ stats.unverified }}</span></div>
+</div>
+
+{% if categories|length > 1 %}
+<form class="filters-form-compact admin-users-tournament" method="get" action="/admin/usuarios">
+  {% if filter != 'all' %}<input type="hidden" name="filter" value="{{ filter }}">{% endif %}
+  <label class="filter-select-field">
+    <span class="filter-select-label">Torneo</span>
+    <select name="category_id" class="filter-select" onchange="this.form.submit()">
+      {% for cat in categories %}
+      <option value="{{ cat.id }}" {% if cat.id == selected_category_id %}selected{% endif %}>{{ cat.name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+</form>
+{% elif selected_category %}
+<p class="admin-users-tournament-label">Torneo: <strong>{{ selected_category.name }}</strong></p>
+{% endif %}
+
+<div class="filter-chips">
+  <a href="/admin/usuarios{% if selected_category_id %}?category_id={{ selected_category_id }}{% endif %}" class="chip {% if filter == 'all' %}active{% endif %}">Todos</a>
+  <a href="/admin/usuarios?filter=verified{% if selected_category_id %}&category_id={{ selected_category_id }}{% endif %}" class="chip {% if filter == 'verified' %}active{% endif %}">Verificados</a>
+  <a href="/admin/usuarios?filter=unverified{% if selected_category_id %}&category_id={{ selected_category_id }}{% endif %}" class="chip {% if filter == 'unverified' %}active{% endif %}">Sin verificar</a>
+</div>
+
+<div class="panel table-panel">
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Usuario</th>
+          <th>Email</th>
+          <th>Celular</th>
+          <th>Verificado</th>
+          <th>Campeón{% if selected_category %} <span class="th-hint">({{ selected_category.name }})</span>{% endif %}</th>
+          <th>Admin</th>
+          <th>Predicciones</th>
+          <th>Registro</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        {% set champion = champion_by_user.get(u.id) %}
+        <tr>
+          <td>
+            <div class="user-cell">
+              {% if u.picture %}<img src="{{ u.picture }}" alt="" class="avatar avatar-sm">{% endif %}
+              {{ u.name }}
+            </div>
+          </td>
+          <td>{{ u.email }}</td>
+          <td>{{ u.phone_number or '—' }}</td>
+          <td>
+            {% if u.phone_verified %}
+            <span class="badge badge-hit">✓ Sí</span>
+            {% else %}
+            <span class="badge badge-miss">✗ No</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if champion %}
+            <div class="admin-champion-cell">
+              {{ team_flag(champion.champion_team, 'sm') }}
+              <span>{{ champion.champion_team }}</span>
+              {% if selected_category and selected_category.champion_decided %}
+                {% if champion.result == PredictionResult.HIT %}
+                <span class="badge badge-hit badge-sm">✓</span>
+                {% elif champion.result == PredictionResult.MISS %}
+                <span class="badge badge-miss badge-sm">✗</span>
+                {% endif %}
+              {% endif %}
+            </div>
+            {% else %}
+            <span class="muted-sm">—</span>
+            {% endif %}
+          </td>
+          <td>{% if u.is_admin %}<span class="admin-badge">admin</span>{% else %}—{% endif %}</td>
+          <td>{{ pred_counts.get(u.id, 0) }}</td>
+          <td>{{ u.created_at.strftime('%d/%m/%Y') }}</td>
+          <td>
+            {% if u.phone_verified %}
+            <form method="post" action="/admin/usuarios/{{ u.id }}/unverify-phone" class="inline-action-form" onsubmit="return confirm('¿Quitar la verificación de celular de {{ u.name.split()[0] }}?')">
+              <input type="hidden" name="filter" value="{{ filter }}">
+              {% if selected_category_id %}<input type="hidden" name="category_id" value="{{ selected_category_id }}">{% endif %}
+              <button type="submit" class="btn btn-danger btn-sm">Quitar verificación</button>
+            </form>
+            {% else %}
+            —
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9" class="empty">No hay usuarios con este filtro.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

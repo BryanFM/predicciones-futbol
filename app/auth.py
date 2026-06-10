@@ -1,3 +1,4 @@
+import app.env  # noqa: F401
 import os
 from typing import Optional
 
@@ -17,18 +18,36 @@ oauth.register(
     client_kwargs={"scope": "openid email profile"},
 )
 
-_ADMIN_EMAILS = {
-    e.strip().lower()
-    for e in os.environ.get("ADMIN_EMAILS", "").split(",")
-    if e.strip()
-}
+def _admin_emails() -> set[str]:
+    return {
+        e.strip().lower()
+        for e in os.environ.get("ADMIN_EMAILS", "").split(",")
+        if e.strip()
+    }
+
+
+def _should_be_admin(email: str) -> bool:
+    return email.strip().lower() in _admin_emails()
+
+
+def sync_admin_flag(db: Session, user: User) -> User:
+    """Mantiene is_admin alineado con ADMIN_EMAILS (sin exigir nuevo login)."""
+    should = _should_be_admin(user.email)
+    if user.is_admin != should:
+        user.is_admin = should
+        db.commit()
+        db.refresh(user)
+    return user
 
 
 def get_current_user(request: Request, db: Session = Depends(get_db)) -> Optional[User]:
     user_id = request.session.get("user_id")
     if not user_id:
         return None
-    return db.get(User, user_id)
+    user = db.get(User, user_id)
+    if not user:
+        return None
+    return sync_admin_flag(db, user)
 
 
 def require_login(user: Optional[User] = Depends(get_current_user)) -> User:
@@ -43,16 +62,31 @@ def require_admin(user: Optional[User] = Depends(get_current_user)) -> User:
     return user
 
 
+def require_verified(user: User = Depends(require_login)) -> User:
+    if not user.phone_verified:
+        raise HTTPException(403, "Debes verificar tu número de celular")
+    return user
+
+
 def upsert_user(db: Session, google_id: str, email: str, name: str, picture: str) -> User:
+    should_be_admin = _should_be_admin(email)
     user = db.query(User).filter(User.google_id == google_id).first()
     if user:
         user.name = name
         user.picture = picture
+        user.email = email
+        user.is_admin = should_be_admin
         db.commit()
+        db.refresh(user)
         return user
 
-    is_admin = email.lower() in _ADMIN_EMAILS
-    user = User(google_id=google_id, email=email, name=name, picture=picture, is_admin=is_admin)
+    user = User(
+        google_id=google_id,
+        email=email,
+        name=name,
+        picture=picture,
+        is_admin=should_be_admin,
+    )
     db.add(user)
     db.commit()
     db.refresh(user)

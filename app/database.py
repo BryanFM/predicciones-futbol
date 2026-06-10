@@ -1,3 +1,4 @@
+import app.env  # noqa: F401 — carga .env antes de leer os.environ
 import os
 
 from sqlalchemy import create_engine

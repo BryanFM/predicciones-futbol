@@ -1,12 +1,84 @@
 {% extends "base.html" %}
+{% from "macros/countdown.html" import countdown %}
+{% from "macros/tournament_icon.html" import tournament_icon %}
 
-{% block title %}Próximamente — Hamster Fijas{% endblock %}
+{% block title %}Hamster puntos — Hamster Fijas{% endblock %}
 
 {% block content %}
 <section class="coming-soon">
   <img src="/static/hamster.png" alt="Hamster Fijas" class="coming-soon-img">
-  <h2>🏆 Sistema de Puntos</h2>
-  <p class="coming-soon-sub">Al finalizar la fase de grupos del Mundial 2026, los participantes con más predicciones acertadas podrán canjear sus puntos por premios.</p>
+  <h2>🐹 Hamster puntos</h2>
+  <p class="coming-soon-sub">Acumula puntos acertando marcadores y prediciendo al campeón del torneo.</p>
+
+  {% if countdown_ms and selected_category %}
+  <div class="countdown-inline">
+    {{ countdown(countdown_ms, selected_category.name, 'compact') }}
+  </div>
+  {% endif %}
+
+  {% if categories|length > 1 %}
+  <form class="filters-form points-filter" method="get" action="/proximamente">
+    <label>Torneo
+      <select name="category_id" class="filter-select" onchange="this.form.submit()">
+        {% for cat in categories %}
+        <option value="{{ cat.id }}" {% if cat.id == selected_category_id %}selected{% endif %}>{{ cat.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+  </form>
+  {% endif %}
+
+  {% if current_user and my_points %}
+  <div class="my-points-card">
+    <span class="hp-label">Tus Hamster puntos</span>
+    <span class="hp-value lg">{{ my_points.total }}</span>
+    <div class="hp-breakdown">
+      <span>Marcadores acertados: {{ my_points.score_hits }} × {{ SCORE_HIT_POINTS }} = {{ my_points.score_points }} HP</span>
+      <span>Campeón acertado: {{ my_points.champion_hits }} × {{ CHAMPION_HIT_POINTS }} = {{ my_points.champion_points }} HP</span>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="rules-box">
+    <h3>¿Cómo se ganan?</h3>
+    <ul>
+      <li>⚽ Marcador exacto acertado → <strong>{{ SCORE_HIT_POINTS }} Hamster puntos</strong></li>
+      <li class="rules-item-with-icon">
+        {{ tournament_icon(selected_category, 'xs') }}
+        Campeón del torneo acertado → <strong>{{ CHAMPION_HIT_POINTS }} Hamster puntos</strong>
+      </li>
+      <li>🔒 La predicción de campeón cierra al iniciar el torneo</li>
+      <li>🎯 Solo cuenta el marcador exacto (local y visitante)</li>
+    </ul>
+  </div>
+
+  {% if leaderboard %}
+  <section class="panel leaderboard-panel">
+    <h3 class="ranking-title">
+      Ranking
+      {% if selected_category %}
+      <span class="tournament-label">
+        {{ tournament_icon(selected_category, 'xs') }}
+        <span>{{ selected_category.name }}</span>
+      </span>
+      {% endif %}
+    </h3>
+    <ol class="leaderboard-list">
+      {% for row in leaderboard %}
+      <li class="leaderboard-item {% if current_user and row.user.id == current_user.id %}is-me{% endif %}">
+        <span class="lb-rank">{{ loop.index }}</span>
+        <div class="lb-user">
+          {% if row.user.picture %}<img src="{{ row.user.picture }}" alt="" class="avatar avatar-sm">{% endif %}
+          <span>{{ row.user.name.split()[0] }}</span>
+        </div>
+        <span class="lb-points">{{ row.total }} HP</span>
+      </li>
+      {% endfor %}
+    </ol>
+  </section>
+  {% else %}
+  <p class="empty-sm">Aún no hay puntos registrados en este torneo.</p>
+  {% endif %}
 
   <div class="prize-grid">
     <div class="prize-card gold">
@@ -24,16 +96,6 @@
       <span class="prize-label">3er lugar</span>
       <span class="prize-desc">Premio sorpresa</span>
     </div>
-  </div>
-
-  <div class="rules-box">
-    <h3>¿Cómo funciona?</h3>
-    <ul>
-      <li>🐹 Cada predicción acertada suma <strong>1 punto</strong></li>
-      <li>📅 Se contabilizan los partidos de la fase de grupos</li>
-      <li>🎯 Más predicciones = más chances de ganar</li>
-      <li>🔒 Los premios se revelarán próximamente</li>
-    </ul>
   </div>
 
   {% if not current_user %}

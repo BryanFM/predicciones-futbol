@@ -1,0 +1,28 @@
+{% from "macros/tournament_icon.html" import tournament_icon %}
+
+{% macro countdown(target_ms, label='', css_class='') %}
+{% if target_ms %}
+<div class="countdown {{ css_class }}" data-target-ms="{{ target_ms }}" data-label="{{ label }}">
+  <p class="countdown-title">
+    {% if label %}
+    <span class="tournament-label">
+      {{ tournament_icon(none, 'xs') }}
+      <span>Cuenta regresiva — {{ label }}</span>
+    </span>
+    {% else %}
+    Cuenta regresiva
+    {% endif %}
+  </p>
+  <div class="countdown-units">
+    <div class="countdown-unit"><span class="cd-days">--</span><small>días</small></div>
+    <div class="countdown-unit"><span class="cd-hours">--</span><small>hrs</small></div>
+    <div class="countdown-unit"><span class="cd-mins">--</span><small>min</small></div>
+    <div class="countdown-unit"><span class="cd-secs">--</span><small>seg</small></div>
+  </div>
+  <div>
+    <video width="100" height="100" class="hamster_run" src="{{ static_url('hamster_run.mp4') }}" autoplay loop muted playsinline></video>
+  </div>
+  <p class="countdown-done hidden">¡El torneo ha comenzado!</p>
+</div>
+{% endif %}
+{% endmacro %}
