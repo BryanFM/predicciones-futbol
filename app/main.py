@@ -248,8 +248,21 @@ templates.env.globals["SCORE_HIT_POINTS"] = SCORE_HIT_POINTS
 templates.env.globals["CHAMPION_HIT_POINTS"] = CHAMPION_HIT_POINTS
 templates.env.globals["PredictionResult"] = PredictionResult
 templates.env.globals["PredictionType"] = PredictionType
-templates.env.globals["GA_MEASUREMENT_ID"] = os.environ.get("GA_MEASUREMENT_ID", "").strip()
-templates.env.globals["CLARITY_PROJECT_ID"] = os.environ.get("CLARITY_PROJECT_ID", "").strip()
+def _public_env(name: str, *, production_default: str = "") -> str:
+    value = os.environ.get(name, "").strip()
+    if value:
+        return value
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        return production_default
+    return ""
+
+
+templates.env.globals["GA_MEASUREMENT_ID"] = _public_env(
+    "GA_MEASUREMENT_ID", production_default="G-W394R9W8E7"
+)
+templates.env.globals["CLARITY_PROJECT_ID"] = _public_env(
+    "CLARITY_PROJECT_ID", production_default="x51o85xggi"
+)
 
 
 def _home_url(
