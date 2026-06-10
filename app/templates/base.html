@@ -62,7 +62,9 @@
               <path fill="currentColor" d="M7 10l5 5 5-5H7z"/>
             </svg>
           </button>
-          <div class="profile-menu">
+          <div class="profile-menu-backdrop" aria-hidden="true"></div>
+          <div class="profile-menu" role="menu">
+            <div class="profile-menu-handle" aria-hidden="true"></div>
             <div class="profile-menu-header">
               {% if current_user.picture %}
                 <img src="{{ current_user.picture }}" alt="" class="avatar avatar-lg">
@@ -157,33 +159,46 @@
     if (!profile) return;
 
     const trigger = profile.querySelector('.profile-trigger');
-    const canHover = window.matchMedia('(hover: hover)').matches;
+    const backdrop = profile.querySelector('.profile-menu-backdrop');
+    const canHover = window.matchMedia('(hover: hover) and (min-width: 769px)').matches;
+
+    function setProfileOpen(open) {
+      profile.classList.toggle('open', open);
+      trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+      const mobile = window.matchMedia('(max-width: 768px)').matches;
+      document.body.classList.toggle('profile-menu-open', open && mobile);
+      if (backdrop) backdrop.setAttribute('aria-hidden', open ? 'false' : 'true');
+    }
 
     trigger.addEventListener('click', (e) => {
       e.stopPropagation();
-      const isOpen = profile.classList.toggle('open');
-      trigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      setProfileOpen(!profile.classList.contains('open'));
     });
+
+    if (backdrop) {
+      backdrop.addEventListener('click', () => setProfileOpen(false));
+    }
 
     if (canHover) {
       let closeTimer;
       profile.addEventListener('mouseenter', () => {
         clearTimeout(closeTimer);
-        profile.classList.add('open');
-        trigger.setAttribute('aria-expanded', 'true');
+        setProfileOpen(true);
       });
       profile.addEventListener('mouseleave', () => {
-        closeTimer = setTimeout(() => {
-          profile.classList.remove('open');
-          trigger.setAttribute('aria-expanded', 'false');
-        }, 150);
+        closeTimer = setTimeout(() => setProfileOpen(false), 150);
       });
     }
 
     document.addEventListener('click', (e) => {
       if (!profile.contains(e.target)) {
-        profile.classList.remove('open');
-        trigger.setAttribute('aria-expanded', 'false');
+        setProfileOpen(false);
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && profile.classList.contains('open')) {
+        setProfileOpen(false);
       }
     });
   })();
