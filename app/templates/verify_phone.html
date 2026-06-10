@@ -5,7 +5,7 @@
 {% block content %}
 {% set raw_phone = pending_phone or current_user.phone_number or '' %}
 <section class="panel verify-panel">
-  <img src="/static/hamster.png" alt="" class="verify-img">
+  <img src="{{ static_url('hamster-80.png') }}" alt="" class="verify-img" width="80" height="80" loading="lazy" decoding="async">
   <h2>Verifica tu celular</h2>
   <p class="verify-desc">Para participar en predicciones necesitas confirmar tu número. Te enviaremos un código por SMS.</p>
 

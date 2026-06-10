@@ -9,8 +9,10 @@ from sqlalchemy.orm import Session
 
 from app.auth import require_admin
 from app.database import get_db
-from app.models import Category, ChampionPrediction, PhoneVerification, Prediction, User, AccountDeletion
+from app.models import Category, ChampionPrediction, PhoneVerification, Prediction, User, AccountDeletion, YapePurchaseRequest, YapePurchaseStatus
 from app.rendering import render
+from app.timezone import peru_now
+from app.yape_policy import YAPE_PACKAGES, get_package
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -271,3 +273,120 @@ def delete_tournament(
         db.delete(t)
         db.commit()
     return RedirectResponse("/admin/torneos", status_code=303)
+
+
+def _yape_redirect(
+    filter: Optional[str] = None,
+    msg: Optional[str] = None,
+    error: Optional[str] = None,
+) -> RedirectResponse:
+    params = []
+    if filter and filter != "all":
+        params.append(f"filter={filter}")
+    if msg:
+        params.append(f"msg={msg}")
+    if error:
+        params.append(f"error={error}")
+    qs = "&".join(params)
+    return RedirectResponse(f"/admin/compras-yape{'?' + qs if qs else ''}", status_code=303)
+
+
+@router.get("/compras-yape", response_class=HTMLResponse)
+def list_yape_purchases(
+    request: Request,
+    filter: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    query = db.query(YapePurchaseRequest).order_by(YapePurchaseRequest.created_at.desc())
+    if filter == "pending":
+        query = query.filter(YapePurchaseRequest.status == YapePurchaseStatus.PENDING)
+    elif filter == "approved":
+        query = query.filter(YapePurchaseRequest.status == YapePurchaseStatus.APPROVED)
+    elif filter == "rejected":
+        query = query.filter(YapePurchaseRequest.status == YapePurchaseStatus.REJECTED)
+
+    purchases = query.limit(200).all()
+    user_ids = {p.user_id for p in purchases}
+    users = {u.id: u for u in db.query(User).filter(User.id.in_(user_ids or {0})).all()}
+    categories = {c.id: c for c in db.query(Category).all()}
+    packages = {p["id"]: p for p in YAPE_PACKAGES}
+
+    stats = {
+        "pending": db.query(YapePurchaseRequest).filter(YapePurchaseRequest.status == YapePurchaseStatus.PENDING).count(),
+        "approved": db.query(YapePurchaseRequest).filter(YapePurchaseRequest.status == YapePurchaseStatus.APPROVED).count(),
+        "rejected": db.query(YapePurchaseRequest).filter(YapePurchaseRequest.status == YapePurchaseStatus.REJECTED).count(),
+    }
+    stats["total"] = stats["pending"] + stats["approved"] + stats["rejected"]
+
+    return render(
+        "admin/yape_purchases.html",
+        {
+            "purchases": purchases,
+            "users": users,
+            "categories": categories,
+            "packages": packages,
+            "filter": filter or "all",
+            "stats": stats,
+        },
+        request=request,
+        db=db,
+        current_user=current_user,
+    )
+
+
+@router.post("/compras-yape/{purchase_id}/aprobar")
+def approve_yape_purchase(
+    purchase_id: int,
+    filter: Optional[str] = Form(None),
+    hp_granted: Optional[int] = Form(None),
+    admin_notes: str = Form(""),
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    purchase = db.get(YapePurchaseRequest, purchase_id)
+    if not purchase:
+        return _yape_redirect(filter, error="Solicitud+no+encontrada")
+    if purchase.status != YapePurchaseStatus.PENDING:
+        return _yape_redirect(filter, error="La+solicitud+ya+fue+revisada")
+
+    granted = hp_granted if hp_granted is not None and hp_granted > 0 else purchase.hp_requested
+    pkg = get_package(purchase.package_id)
+    max_hp = (pkg["hp"] * 2) if pkg else purchase.hp_requested * 2
+    if granted > max_hp:
+        return _yape_redirect(filter, error="HP+otorgados+fuera+de+rango")
+
+    purchase.status = YapePurchaseStatus.APPROVED
+    purchase.hp_granted = granted
+    purchase.reviewed_by_id = admin.id
+    purchase.reviewed_at = peru_now()
+    purchase.admin_notes = admin_notes.strip()[:255] or None
+    db.commit()
+    return _yape_redirect(filter, msg="Compra+aprobada")
+
+
+@router.post("/compras-yape/{purchase_id}/rechazar")
+def reject_yape_purchase(
+    purchase_id: int,
+    filter: Optional[str] = Form(None),
+    admin_notes: str = Form(""),
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    purchase = db.get(YapePurchaseRequest, purchase_id)
+    if not purchase:
+        return _yape_redirect(filter, error="Solicitud+no+encontrada")
+    if purchase.status != YapePurchaseStatus.PENDING:
+        return _yape_redirect(filter, error="La+solicitud+ya+fue+revisada")
+
+    notes = admin_notes.strip()[:255]
+    if not notes:
+        return _yape_redirect(filter, error="Indica+el+motivo+del+rechazo")
+
+    purchase.status = YapePurchaseStatus.REJECTED
+    purchase.hp_granted = 0
+    purchase.reviewed_by_id = admin.id
+    purchase.reviewed_at = peru_now()
+    purchase.admin_notes = notes
+    db.commit()
+    return _yape_redirect(filter, msg="Compra+rechazada")

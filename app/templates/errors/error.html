@@ -4,7 +4,7 @@
 
 {% block content %}
 <section class="error-page">
-  <img data-src="/static/hamster.png" alt="" class="error-page-img" width="100" height="100">
+  <img data-src="{{ static_url('hamster-120.png') }}" alt="" class="error-page-img" width="100" height="100">
   <p class="error-page-code" aria-hidden="true">{{ status_code }}</p>
   <h1 class="error-page-title">{{ title }}</h1>
   <p class="error-page-message">{{ error_detail }}</p>

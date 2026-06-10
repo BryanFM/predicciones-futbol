@@ -1,6 +1,6 @@
 (function () {
   const MAX_ICONS = 5;
-  const DEFAULT_HAMSTER = '/static/hamster.png';
+  const DEFAULT_HAMSTER = '/static/hamster-32.png';
 
   function createHamsterIcon(src, index) {
     const img = document.createElement('img');

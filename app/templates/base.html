@@ -25,14 +25,13 @@
   <link rel="icon" type="image/png" sizes="32x32" href="{{ static_url('favicon-32.png') }}">
   <link rel="shortcut icon" href="{{ static_url('favicon-32.png') }}">
   <link rel="apple-touch-icon" sizes="180x180" href="{{ static_url('apple-touch-icon.png') }}">
+  <link rel="preload" href="{{ static_url('hamster-64.png') }}" as="image" type="image/png" fetchpriority="high">
   <link rel="stylesheet" href="{{ static_url('styles.css') }}">
   {% if GA_MEASUREMENT_ID %}
-  <script async src="https://www.googletagmanager.com/gtag/js?id={{ GA_MEASUREMENT_ID }}"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     window.gtag = gtag;
-    gtag('js', new Date());
     gtag('consent', 'default', {
       analytics_storage: 'denied',
       ad_storage: 'denied',
@@ -40,10 +39,9 @@
       ad_personalization: 'denied',
       wait_for_update: 500
     });
-    gtag('config', '{{ GA_MEASUREMENT_ID }}', { anonymize_ip: true });
   </script>
   {% endif %}
-  <script src="{{ static_url('countdown.js') }}" defer></script>
+  {% block head_scripts %}{% endblock %}
   <script>
     (function () {
       const stored = localStorage.getItem('hf-theme');
@@ -57,7 +55,7 @@
   <header class="header">
     <div class="container header-inner">
       <a href="/" class="brand">
-        <img src="/static/hamster.png" alt="Hamster Fijas" class="brand-logo">
+        <img src="{{ static_url('hamster-64.png') }}" alt="Hamster Fijas" class="brand-logo" width="52" height="52" fetchpriority="high" decoding="async">
         <div>
           <h1>Hamster Fijas</h1>
         </div>
@@ -71,13 +69,13 @@
           aria-label="Hamster puntos: {{ user_points.total if user_points else 0 }}"
           title="Marcadores: {{ user_points.score_points if user_points else 0 }} · Campeón: {{ user_points.champion_points if user_points else 0 }}"
         >
-          <img src="/static/hamster.png" alt="" class="hp-nav-icon" width="28" height="28">
+          <img src="{{ static_url('hamster-32.png') }}" alt="" class="hp-nav-icon" width="28" height="28" loading="lazy" decoding="async">
           <span class="hp-nav-label">Hamster puntos</span>
           <span class="hp-nav-value">{{ user_points.total if user_points else 0 }}</span>
         </a>
         {% else %}
         <a href="/proximamente" class="nav-link hamster-points-nav-guest">
-          <img src="/static/hamster.png" alt="" class="hp-nav-icon" width="28" height="28">
+          <img src="{{ static_url('hamster-32.png') }}" alt="" class="hp-nav-icon" width="28" height="28" loading="lazy" decoding="async">
           Hamster puntos
         </a>
         {% endif %}
@@ -130,7 +128,7 @@
               {% endif %}
               <a href="/proximamente{% if nav_cat %}?category_id={{ nav_cat }}{% endif %}" class="nav-dropdown-item {% if request.url.path == '/proximamente' %}active{% endif %}">
                 <span class="nav-dropdown-icon nav-dropdown-icon-img">
-                  <img src="/static/hamster.png" alt="" width="22" height="22">
+                  <img src="{{ static_url('hamster-32.png') }}" alt="" width="22" height="22" loading="lazy" decoding="async">
                 </span>
                 <span><strong>Hamster puntos</strong><small>Ranking y recompensas</small></span>
               </a>
@@ -138,6 +136,12 @@
                 <span class="nav-dropdown-icon">⚙️</span>
                 <span><strong>Configuración</strong><small>Cuenta y privacidad</small></span>
               </a>
+              {% if YAPE_PAYMENTS_BETA and current_user.phone_verified %}
+              <a href="/comprar-yape" class="nav-dropdown-item {% if request.url.path.startswith('/comprar-yape') or request.url.path.startswith('/mis-compras-yape') %}active{% endif %}">
+                <span class="nav-dropdown-icon">💜</span>
+                <span><strong>Comprar HP con Yape</strong><small>Beta · revisión manual</small></span>
+              </a>
+              {% endif %}
             </div>
 
             {% if current_user.is_admin %}
@@ -154,6 +158,10 @@
               <a href="/admin/bajas-cuentas" class="nav-dropdown-item {% if request.url.path.startswith('/admin/bajas-cuentas') %}active{% endif %}">
                 <span class="nav-dropdown-icon">🗑</span>
                 <span><strong>Bajas de cuenta</strong><small>Registro anonimizado</small></span>
+              </a>
+              <a href="/admin/compras-yape" class="nav-dropdown-item {% if request.url.path.startswith('/admin/compras-yape') %}active{% endif %}">
+                <span class="nav-dropdown-icon">💜</span>
+                <span><strong>Compras Yape</strong><small>Aprobar pagos beta</small></span>
               </a>
             </div>
             {% endif %}
@@ -213,67 +221,9 @@
       </div>
     </div>
   </aside>
+  {% block page_scripts %}{% endblock %}
   <script src="{{ static_url('lazyload.js') }}" defer></script>
   <script src="{{ static_url('cookie-consent.js') }}" defer></script>
-  <script>
-  (function () {
-    const toggle = document.getElementById('theme-toggle');
-    if (toggle) {
-      toggle.addEventListener('click', () => {
-        const root = document.documentElement;
-        const next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
-        root.setAttribute('data-theme', next);
-        localStorage.setItem('hf-theme', next);
-      });
-    }
-
-    const profile = document.getElementById('profile-menu');
-    if (!profile) return;
-
-    const trigger = profile.querySelector('.profile-trigger');
-    const backdrop = profile.querySelector('.profile-menu-backdrop');
-    const canHover = window.matchMedia('(hover: hover) and (min-width: 769px)').matches;
-
-    function setProfileOpen(open) {
-      profile.classList.toggle('open', open);
-      trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
-      const mobile = window.matchMedia('(max-width: 768px)').matches;
-      document.body.classList.toggle('profile-menu-open', open && mobile);
-      if (backdrop) backdrop.setAttribute('aria-hidden', open ? 'false' : 'true');
-    }
-
-    trigger.addEventListener('click', (e) => {
-      e.stopPropagation();
-      setProfileOpen(!profile.classList.contains('open'));
-    });
-
-    if (backdrop) {
-      backdrop.addEventListener('click', () => setProfileOpen(false));
-    }
-
-    if (canHover) {
-      let closeTimer;
-      profile.addEventListener('mouseenter', () => {
-        clearTimeout(closeTimer);
-        setProfileOpen(true);
-      });
-      profile.addEventListener('mouseleave', () => {
-        closeTimer = setTimeout(() => setProfileOpen(false), 150);
-      });
-    }
-
-    document.addEventListener('click', (e) => {
-      if (!profile.contains(e.target)) {
-        setProfileOpen(false);
-      }
-    });
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && profile.classList.contains('open')) {
-        setProfileOpen(false);
-      }
-    });
-  })();
-  </script>
+  <script src="{{ static_url('profile-menu.js') }}" defer></script>
 </body>
 </html>

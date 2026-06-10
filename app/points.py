@@ -11,6 +11,8 @@ from app.models import (
     PredictionResult,
     PredictionType,
     User,
+    YapePurchaseRequest,
+    YapePurchaseStatus,
 )
 
 SCORE_HIT_POINTS = 5
@@ -42,12 +44,21 @@ def user_hamster_points(
     score_pts = score_hits * SCORE_HIT_POINTS
     champion_pts = champion_hits * CHAMPION_HIT_POINTS
 
+    purchased_query = db.query(YapePurchaseRequest).filter(
+        YapePurchaseRequest.user_id == user_id,
+        YapePurchaseRequest.status == YapePurchaseStatus.APPROVED,
+    )
+    if category_id:
+        purchased_query = purchased_query.filter(YapePurchaseRequest.category_id == category_id)
+    purchased_pts = sum(row.hp_granted or 0 for row in purchased_query.all())
+
     return {
         "score_hits": score_hits,
         "champion_hits": champion_hits,
         "score_points": score_pts,
         "champion_points": champion_pts,
-        "total": score_pts + champion_pts,
+        "purchased_points": purchased_pts,
+        "total": score_pts + champion_pts + purchased_pts,
     }
 
 

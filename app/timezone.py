@@ -13,6 +13,13 @@ def format_pet(dt: datetime) -> str:
     return dt.strftime("%d/%m/%Y %H:%M") + " PET"
 
 
+def utc_naive_to_pet(dt: datetime) -> datetime:
+    """Convierte datetime naive en UTC (legado) a naive PET."""
+    from datetime import timezone as tz
+
+    return dt.replace(tzinfo=tz.utc).astimezone(PERU_TZ).replace(tzinfo=None)
+
+
 def pet_timestamp_ms(dt: datetime) -> int:
     """Epoch en milisegundos para countdown JS (datetime naive en PET)."""
     aware = dt.replace(tzinfo=PERU_TZ)

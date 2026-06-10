@@ -29,6 +29,11 @@ class User(Base):
     champion_predictions: Mapped[list["ChampionPrediction"]] = relationship(
         "ChampionPrediction", back_populates="user"
     )
+    yape_purchases: Mapped[list["YapePurchaseRequest"]] = relationship(
+        "YapePurchaseRequest",
+        back_populates="user",
+        foreign_keys="YapePurchaseRequest.user_id",
+    )
 
 
 class AccountDeletion(Base):
@@ -40,7 +45,7 @@ class AccountDeletion(Base):
     former_user_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     email_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     registered_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    deleted_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    deleted_at: Mapped[datetime] = mapped_column(DateTime, default=peru_now, nullable=False, index=True)
     phone_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     was_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     prediction_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
@@ -177,3 +182,36 @@ class ChampionPrediction(Base):
 
     user: Mapped["User"] = relationship("User", back_populates="champion_predictions")
     category: Mapped["Category"] = relationship("Category", back_populates="champion_predictions")
+
+
+class YapePurchaseStatus(str, enum.Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+
+class YapePurchaseRequest(Base):
+    """Solicitud de compra vía Yape (aprobación manual en beta)."""
+
+    __tablename__ = "yape_purchase_requests"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    category_id: Mapped[Optional[int]] = mapped_column(ForeignKey("categories.id"), nullable=True, index=True)
+    package_id: Mapped[str] = mapped_column(String(20), nullable=False)
+    amount_soles: Mapped[int] = mapped_column(Integer, nullable=False)
+    hp_requested: Mapped[int] = mapped_column(Integer, nullable=False)
+    hp_granted: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    operation_code: Mapped[str] = mapped_column(String(20), unique=True, nullable=False, index=True)
+    user_note: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    status: Mapped[YapePurchaseStatus] = mapped_column(
+        Enum(YapePurchaseStatus), default=YapePurchaseStatus.PENDING, nullable=False, index=True
+    )
+    admin_notes: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    reviewed_by_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    reviewed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=peru_now, nullable=False, index=True)
+
+    user: Mapped["User"] = relationship("User", foreign_keys=[user_id], back_populates="yape_purchases")
+    category: Mapped[Optional["Category"]] = relationship("Category")
+    reviewed_by: Mapped[Optional["User"]] = relationship("User", foreign_keys=[reviewed_by_id])

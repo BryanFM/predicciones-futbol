@@ -40,28 +40,22 @@
     if (!measurementId || window.__hfGaLoaded) return;
     window.__hfGaLoaded = true;
 
-    if (window.gtag) {
-      grantGoogleConsent();
-      return;
+    if (!document.querySelector('script[src*="googletagmanager.com/gtag/js"]')) {
+      var script = document.createElement('script');
+      script.async = true;
+      script.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(measurementId);
+      document.head.appendChild(script);
     }
-
-    var script = document.createElement('script');
-    script.async = true;
-    script.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(measurementId);
-    document.head.appendChild(script);
 
     window.dataLayer = window.dataLayer || [];
-    function gtag() {
-      window.dataLayer.push(arguments);
+    if (!window.gtag) {
+      function gtag() {
+        window.dataLayer.push(arguments);
+      }
+      window.gtag = gtag;
+      gtag('js', new Date());
     }
-    window.gtag = gtag;
-    gtag('js', new Date());
-    gtag('consent', 'default', {
-      analytics_storage: 'granted',
-      ad_storage: 'denied',
-      ad_user_data: 'denied',
-      ad_personalization: 'denied',
-    });
+    grantGoogleConsent();
     gtag('config', measurementId, { anonymize_ip: true });
   }
 

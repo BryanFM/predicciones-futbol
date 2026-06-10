@@ -24,12 +24,13 @@ from app.rendering import render, render_error_page, static_url, templates
 
 BASE_DIR = Path(__file__).resolve().parent
 
-from app.routers import account, admin, verify
+from app.routers import account, admin, verify, yape
 
 app = FastAPI(title="Hamster Fijas")
 app.include_router(verify.router)
 app.include_router(account.router)
 app.include_router(admin.router)
+app.include_router(yape.router)
 
 
 class NoCacheHTMLMiddleware(BaseHTTPMiddleware):
@@ -42,7 +43,26 @@ class NoCacheHTMLMiddleware(BaseHTTPMiddleware):
         return response
 
 
+class StaticCacheMiddleware(BaseHTTPMiddleware):
+    """Caché larga en estáticos versionados (?v=) y avatares."""
+
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        path = request.url.path
+        if response.status_code != 200:
+            return response
+        if path.startswith("/static/"):
+            if request.query_params.get("v"):
+                response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+            else:
+                response.headers["Cache-Control"] = "public, max-age=604800"
+        elif path.startswith("/avatars/"):
+            response.headers["Cache-Control"] = "public, max-age=86400, stale-while-revalidate=604800"
+        return response
+
+
 app.add_middleware(NoCacheHTMLMiddleware)
+app.add_middleware(StaticCacheMiddleware)
 app.add_middleware(
     SessionMiddleware,
     secret_key=os.environ.get("SECRET_KEY", "dev-secret-change-in-production"),
@@ -64,7 +84,7 @@ def favicon():
     return FileResponse(
         BASE_DIR / "static" / "favicon-32.png",
         media_type="image/png",
-        headers={"Cache-Control": "public, max-age=86400"},
+        headers={"Cache-Control": "public, max-age=86400, stale-while-revalidate=604800"},
     )
 
 
@@ -84,7 +104,7 @@ async def user_avatar_image(user_id: int, db: Session = Depends(get_db)):
     return Response(
         content=body,
         media_type=content_type,
-        headers={"Cache-Control": "public, max-age=86400"},
+        headers={"Cache-Control": "public, max-age=31536000, immutable"},
     )
 
 
@@ -376,6 +396,13 @@ templates.env.globals["SCORE_HIT_POINTS"] = SCORE_HIT_POINTS
 templates.env.globals["CHAMPION_HIT_POINTS"] = CHAMPION_HIT_POINTS
 templates.env.globals["PredictionResult"] = PredictionResult
 templates.env.globals["PredictionType"] = PredictionType
+
+from app.yape_policy import YAPE_PACKAGES, yape_payments_enabled, yape_recipient_phone, format_yape_phone
+
+templates.env.globals["YAPE_PAYMENTS_BETA"] = yape_payments_enabled()
+templates.env.globals["YAPE_PACKAGES"] = YAPE_PACKAGES
+templates.env.globals["yape_recipient_phone"] = yape_recipient_phone
+templates.env.globals["format_yape_phone"] = format_yape_phone
 def _public_env(name: str, *, production_default: str = "") -> str:
     value = os.environ.get(name, "").strip()
     if value:

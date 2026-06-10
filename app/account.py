@@ -1,9 +1,6 @@
 """Operaciones de cuenta de usuario."""
 
-import hashlib
-from datetime import datetime
-
-from sqlalchemy import func
+from app.timezone import peru_now, utc_naive_to_pet
 from sqlalchemy.orm import Session
 
 from app.models import AccountDeletion, ChampionPrediction, PhoneVerification, Prediction, User
@@ -32,8 +29,8 @@ def record_account_deletion(
     entry = AccountDeletion(
         former_user_id=user.id,
         email_hash=email_fingerprint(user.email),
-        registered_at=user.created_at,
-        deleted_at=datetime.utcnow(),
+        registered_at=utc_naive_to_pet(user.created_at),
+        deleted_at=peru_now(),
         phone_verified=user.phone_verified,
         was_admin=user.is_admin,
         prediction_count=prediction_count,

@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% from "macros/tournament_icon.html" import tournament_icon %}
+
+{% block title %}Comprar Hamster puntos con Yape — Hamster Fijas{% endblock %}
+{% block meta_description %}Compra Hamster puntos extra con Yape para impulsar tu ranking en el torneo. Función beta con revisión manual.{% endblock %}
+
+{% block content %}
+<section class="yape-page">
+  <div class="yape-page-header">
+    <h2>Comprar Hamster puntos</h2>
+    <span class="beta-badge">Beta</span>
+  </div>
+  <p class="yape-intro">
+    Paga con Yape, envía el código de operación y un admin verificará tu pago antes de acreditar los puntos al torneo seleccionado.
+  </p>
+
+  {% if not yape_phone %}
+  <div class="alert alert-error">
+    Pagos Yape en configuración. Vuelve más tarde o contacta al administrador.
+  </div>
+  {% else %}
+
+  <div class="yape-instructions panel">
+    <h3>Instrucciones</h3>
+    <ol class="yape-steps">
+      <li>Elige un pack y el torneo al que aplicarán los puntos.</li>
+      <li>Abre Yape y envía el monto exacto a <strong>{{ yape_phone_display }}</strong>.</li>
+      <li>Copia el <strong>código de operación</strong> que aparece en tu app Yape.</li>
+      <li>Completa el formulario y espera la aprobación (normalmente en pocas horas).</li>
+    </ol>
+    <p class="yape-note">
+      Máximo {{ max_pending }} solicitudes pendientes por usuario.
+      {% if pending_count %}Tienes {{ pending_count }} en revisión.{% endif %}
+    </p>
+  </div>
+
+  <form class="panel yape-form" method="post" action="/comprar-yape">
+    <fieldset class="yape-packages">
+      <legend>Elige un pack</legend>
+      <div class="yape-package-grid">
+        {% for pkg in packages %}
+        <label class="yape-package-card">
+          <input type="radio" name="package_id" value="{{ pkg.id }}" {% if loop.first %}required checked{% endif %}>
+          <span class="yape-package-inner">
+            <span class="yape-package-label">{{ pkg.label }}</span>
+            <span class="yape-package-hp">+{{ pkg.hp }} HP</span>
+            <span class="yape-package-price">S/ {{ pkg.soles }}</span>
+            <span class="yape-package-desc">{{ pkg.desc }}</span>
+          </span>
+        </label>
+        {% endfor %}
+      </div>
+    </fieldset>
+
+    {% if categories|length > 1 %}
+    <label class="yape-field">
+      Torneo
+      <select name="category_id" class="filter-select" required>
+        {% for cat in categories %}
+        <option value="{{ cat.id }}" {% if cat.id == selected_category_id %}selected{% endif %}>{{ cat.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    {% elif selected_category %}
+    <input type="hidden" name="category_id" value="{{ selected_category.id }}">
+    <p class="yape-field-hint">Torneo: <strong>{{ selected_category.name }}</strong></p>
+    {% endif %}
+
+    <label class="yape-field">
+      Código de operación Yape
+      <input type="text" name="operation_code" required minlength="6" maxlength="14"
+             pattern="[A-Za-z0-9]{6,14}" autocomplete="off"
+             placeholder="Ej. 0123456789" inputmode="text">
+      <small>6–14 caracteres alfanuméricos, tal como aparece en Yape.</small>
+    </label>
+
+    <label class="yape-field">
+      Nota opcional
+      <input type="text" name="user_note" maxlength="255" placeholder="Nombre en Yape, hora del pago, etc.">
+    </label>
+
+    <div class="yape-form-actions">
+      <button type="submit" class="btn btn-primary" {% if pending_count >= max_pending %}disabled{% endif %}>
+        Enviar solicitud
+      </button>
+      <a href="/mis-compras-yape" class="btn btn-outline">Ver mis compras</a>
+    </div>
+  </form>
+  {% endif %}
+
+  <p class="yape-disclaimer">
+    Función en beta: los pagos se revisan manualmente. Al usar este servicio aceptas los
+    <a href="/terminos">Términos y Condiciones</a>.
+  </p>
+</section>
+{% endblock %}

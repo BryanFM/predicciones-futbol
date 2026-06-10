@@ -6,9 +6,15 @@
 {% block title %}Hamster puntos — Hamster Fijas{% endblock %}
 {% block meta_description %}Ranking de Hamster puntos del Mundial 2026. Consulta reglas, premios y tu posición en la clasificación.{% endblock %}
 
+{% block head_scripts %}
+{% if countdown_ms %}
+<script src="{{ static_url('countdown.js') }}" defer></script>
+{% endif %}
+{% endblock %}
+
 {% block content %}
 <section class="coming-soon">
-  <img src="/static/hamster.png" alt="Hamster Fijas" class="coming-soon-img">
+  <img src="{{ static_url('hamster-80.png') }}" alt="Hamster Fijas" class="coming-soon-img" width="100" height="100" loading="lazy" decoding="async">
   <h2>🐹 Hamster puntos</h2>
   <p class="coming-soon-sub">Acumula puntos acertando marcadores y prediciendo al campeón del torneo.</p>
 
@@ -37,6 +43,9 @@
     <div class="hp-breakdown">
       <span>Marcadores acertados: {{ my_points.score_hits }} × {{ SCORE_HIT_POINTS }} = {{ my_points.score_points }} HP</span>
       <span>Campeón acertado: {{ my_points.champion_hits }} × {{ CHAMPION_HIT_POINTS }} = {{ my_points.champion_points }} HP</span>
+      {% if my_points.purchased_points %}
+      <span>Comprados con Yape: +{{ my_points.purchased_points }} HP</span>
+      {% endif %}
     </div>
   </div>
   {% endif %}
@@ -100,6 +109,21 @@
       <span class="prize-desc">Premio sorpresa</span>
     </div>
   </div>
+
+  {% if YAPE_PAYMENTS_BETA and current_user and current_user.phone_verified %}
+  <section class="panel yape-cta-panel">
+    <h3>Impulsa tu ranking <span class="beta-badge">Beta</span></h3>
+    <p>Compra Hamster puntos extra con Yape. Un admin verifica tu pago antes de acreditarlos.</p>
+    <div class="yape-cta-actions">
+      <a href="/comprar-yape{% if selected_category_id %}?category_id={{ selected_category_id }}{% endif %}" class="btn btn-primary">Comprar con Yape</a>
+      <a href="/mis-compras-yape" class="btn btn-outline btn-sm">Mis compras</a>
+    </div>
+  </section>
+  {% elif YAPE_PAYMENTS_BETA and current_user and not current_user.phone_verified %}
+  <section class="panel yape-cta-panel">
+    <p>Para comprar Hamster puntos con Yape primero debes <a href="/verificar-telefono">verificar tu celular</a>.</p>
+  </section>
+  {% endif %}
 
   {% if not current_user %}
   <a href="/auth/login" class="btn btn-google" style="margin-top:1.5rem">
