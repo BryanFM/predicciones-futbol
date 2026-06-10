@@ -24,10 +24,11 @@ from app.rendering import render, render_error_page, static_url, templates
 
 BASE_DIR = Path(__file__).resolve().parent
 
-from app.routers import admin, verify
+from app.routers import account, admin, verify
 
 app = FastAPI(title="Hamster Fijas")
 app.include_router(verify.router)
+app.include_router(account.router)
 app.include_router(admin.router)
 
 
@@ -85,6 +86,72 @@ async def user_avatar_image(user_id: int, db: Session = Depends(get_db)):
         media_type=content_type,
         headers={"Cache-Control": "public, max-age=86400"},
     )
+
+
+@app.get("/robots.txt", include_in_schema=False)
+def robots_txt(request: Request):
+    base = site_base_url(request)
+    body = "\n".join(
+        [
+            "User-agent: *",
+            "Allow: /",
+            "Disallow: /admin/",
+            "Disallow: /auth/",
+            "Disallow: /cuenta",
+            "Disallow: /verificar-telefono",
+            "Disallow: /avatars/",
+            "",
+            f"Sitemap: {base}/sitemap.xml",
+            "",
+        ]
+    )
+    return Response(content=body, media_type="text/plain; charset=utf-8")
+
+
+@app.get("/sitemap.xml", include_in_schema=False)
+def sitemap_xml(request: Request, db: Session = Depends(get_db)):
+    from xml.sax.saxutils import escape
+
+    base = site_base_url(request)
+    static_routes = [
+        ("/", "daily", "1.0", None),
+        ("/proximamente", "weekly", "0.8", None),
+        ("/privacidad", "monthly", "0.4", None),
+        ("/terminos", "monthly", "0.4", None),
+    ]
+    urls: list[str] = []
+    for path, changefreq, priority, lastmod in static_routes:
+        loc = escape(f"{base}{path}")
+        chunk = [f"  <url><loc>{loc}</loc>", f"    <changefreq>{changefreq}</changefreq>", f"    <priority>{priority}</priority>"]
+        if lastmod:
+            chunk.append(f"    <lastmod>{lastmod}</lastmod>")
+        chunk.append("  </url>")
+        urls.append("\n".join(chunk))
+
+    matches = db.query(Match).order_by(Match.match_date.desc()).limit(300).all()
+    for match in matches:
+        path = f"/partidos/{match.id}"
+        loc = escape(f"{base}{path}")
+        lastmod = format_sitemap_lastmod(match.match_date)
+        urls.append(
+            "\n".join(
+                [
+                    f"  <url><loc>{loc}</loc>",
+                    f"    <lastmod>{lastmod}</lastmod>",
+                    "    <changefreq>weekly</changefreq>",
+                    "    <priority>0.6</priority>",
+                    "  </url>",
+                ]
+            )
+        )
+
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        + "\n".join(urls)
+        + "\n</urlset>"
+    )
+    return Response(content=xml, media_type="application/xml; charset=utf-8")
 
 
 async def _html_http_error(request: Request, status_code: int, detail: str):
@@ -325,6 +392,23 @@ templates.env.globals["CLARITY_PROJECT_ID"] = _public_env(
     "CLARITY_PROJECT_ID", production_default="x51o85xggi"
 )
 templates.env.globals["avatar_url"] = avatar_url_for_user
+
+from app.seo import (
+    DEFAULT_META_DESCRIPTION,
+    SITE_NAME,
+    canonical_url,
+    default_robots,
+    format_sitemap_lastmod,
+    og_image_url,
+    site_base_url,
+)
+
+templates.env.globals["SITE_NAME"] = SITE_NAME
+templates.env.globals["DEFAULT_META_DESCRIPTION"] = DEFAULT_META_DESCRIPTION
+templates.env.globals["site_base_url"] = site_base_url
+templates.env.globals["canonical_url"] = canonical_url
+templates.env.globals["og_image_url"] = og_image_url
+templates.env.globals["default_robots"] = default_robots
 
 
 def _home_url(

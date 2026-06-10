@@ -41,6 +41,8 @@ services:
         value: G-W394R9W8E7
       - key: CLARITY_PROJECT_ID
         value: x51o85xggi
+      - key: SITE_URL
+        value: https://predicciones-futbol-tmyr.onrender.com
 
 databases:
   - name: predicciones-db

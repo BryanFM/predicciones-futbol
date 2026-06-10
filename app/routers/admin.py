@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import require_admin
 from app.database import get_db
-from app.models import Category, ChampionPrediction, PhoneVerification, Prediction, User
+from app.models import Category, ChampionPrediction, PhoneVerification, Prediction, User, AccountDeletion
 from app.rendering import render
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -78,6 +78,7 @@ def list_users(
 
     total = db.query(User).count()
     verified = db.query(User).filter(User.phone_verified.is_(True)).count()
+    deleted_total = db.query(AccountDeletion).count()
 
     return render(
         "admin/users.html",
@@ -93,7 +94,32 @@ def list_users(
                 "total": total,
                 "verified": verified,
                 "unverified": total - verified,
+                "deleted": deleted_total,
             },
+        },
+        request=request,
+        db=db,
+        current_user=current_user,
+    )
+
+
+@router.get("/bajas-cuentas", response_class=HTMLResponse)
+def list_account_deletions(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    deletions = (
+        db.query(AccountDeletion)
+        .order_by(AccountDeletion.deleted_at.desc())
+        .limit(500)
+        .all()
+    )
+    return render(
+        "admin/deletions.html",
+        {
+            "deletions": deletions,
+            "total": db.query(AccountDeletion).count(),
         },
         request=request,
         db=db,

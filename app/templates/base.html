@@ -6,6 +6,20 @@
   <meta name="theme-color" content="#282828" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#F8E8C8" media="(prefers-color-scheme: light)">
   <title>{% block title %}Hamster Fijas{% endblock %}</title>
+  {% block meta_description %}{% endblock %}
+  {% block meta_robots %}{% endblock %}
+  {% block og_type %}website{% endblock %}
+  {% from "macros/seo_head.html" import seo_tags %}
+  {% set seo_desc = self.meta_description()|trim %}
+  {% set seo_robots_val = self.meta_robots()|trim %}
+  {% set seo_og_type = self.og_type()|trim or 'website' %}
+  {{ seo_tags(
+    request,
+    self.title()|striptags,
+    seo_desc or DEFAULT_META_DESCRIPTION,
+    seo_robots_val or none,
+    seo_og_type
+  ) }}
   <link rel="icon" type="image/png" sizes="32x32" href="{{ static_url('favicon-32.png') }}">
   <link rel="shortcut icon" href="{{ static_url('favicon-32.png') }}">
   <link rel="apple-touch-icon" sizes="180x180" href="{{ static_url('apple-touch-icon.png') }}">
@@ -118,6 +132,10 @@
                 </span>
                 <span><strong>Hamster puntos</strong><small>Ranking y recompensas</small></span>
               </a>
+              <a href="/cuenta" class="nav-dropdown-item {% if request.url.path == '/cuenta' %}active{% endif %}">
+                <span class="nav-dropdown-icon">⚙️</span>
+                <span><strong>Configuración</strong><small>Cuenta y privacidad</small></span>
+              </a>
             </div>
 
             {% if current_user.is_admin %}
@@ -130,6 +148,10 @@
               <a href="/admin/torneos" class="nav-dropdown-item {% if request.url.path.startswith('/admin/torneos') %}active{% endif %}">
                 <span class="nav-dropdown-icon">🏟</span>
                 <span><strong>Torneos</strong><small>Gestionar competencias</small></span>
+              </a>
+              <a href="/admin/bajas-cuentas" class="nav-dropdown-item {% if request.url.path.startswith('/admin/bajas-cuentas') %}active{% endif %}">
+                <span class="nav-dropdown-icon">🗑</span>
+                <span><strong>Bajas de cuenta</strong><small>Registro anonimizado</small></span>
               </a>
             </div>
             {% endif %}

@@ -1,0 +1,32 @@
+{% macro seo_tags(request, page_title, page_description=none, robots=none, og_type='website') %}
+{% set description = page_description or DEFAULT_META_DESCRIPTION %}
+{% set robots_value = robots or default_robots(request) %}
+<meta name="description" content="{{ description }}">
+<meta name="robots" content="{{ robots_value }}">
+<link rel="canonical" href="{{ canonical_url(request) }}">
+
+<meta property="og:locale" content="es_PE">
+<meta property="og:site_name" content="{{ SITE_NAME }}">
+<meta property="og:title" content="{{ page_title }}">
+<meta property="og:description" content="{{ description }}">
+<meta property="og:url" content="{{ canonical_url(request) }}">
+<meta property="og:type" content="{{ og_type }}">
+<meta property="og:image" content="{{ og_image_url(request) }}">
+<meta property="og:image:alt" content="{{ SITE_NAME }}">
+
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="{{ page_title }}">
+<meta name="twitter:description" content="{{ description }}">
+<meta name="twitter:image" content="{{ og_image_url(request) }}">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": {{ SITE_NAME|tojson }},
+  "url": {{ site_base_url(request)|tojson }},
+  "description": {{ description|tojson }},
+  "inLanguage": "es-PE"
+}
+</script>
+{% endmacro %}

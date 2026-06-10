@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Bajas de cuenta — Admin{% endblock %}
+
+{% block content %}
+<section class="admin-page-header admin-page-header-split">
+  <div>
+    <h2>Bajas de cuenta</h2>
+    <p class="admin-page-sub">Registro anonimizado de cuentas eliminadas. No se guardan nombre, correo ni celular.</p>
+  </div>
+  <a href="/admin/usuarios" class="btn btn-outline btn-sm">← Usuarios activos</a>
+</section>
+
+<div class="stats-grid stats-compact">
+  <div class="stat-card"><span class="stat-label">Total de bajas</span><span class="stat-value">{{ total }}</span></div>
+</div>
+
+<div class="panel table-panel">
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>ID interno</th>
+          <th>Huella email</th>
+          <th>Registro</th>
+          <th>Baja</th>
+          <th>Celular verif.</th>
+          <th>Admin</th>
+          <th>Predicciones</th>
+          <th>Campeón</th>
+          <th>Origen</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in deletions %}
+        <tr>
+          <td><code>#{{ row.former_user_id }}</code></td>
+          <td><code class="hash-cell" title="{{ row.email_hash }}">{{ row.email_hash[:12] }}…</code></td>
+          <td>{{ format_pet(row.registered_at) }}</td>
+          <td>{{ format_pet(row.deleted_at) }}</td>
+          <td>{% if row.phone_verified %}<span class="badge badge-hit badge-sm">✓</span>{% else %}<span class="badge badge-miss badge-sm">✗</span>{% endif %}</td>
+          <td>{% if row.was_admin %}<span class="admin-badge">admin</span>{% else %}—{% endif %}</td>
+          <td>{{ row.prediction_count }}</td>
+          <td>{{ row.champion_count }}</td>
+          <td>{% if row.deleted_by == 'self' %}Usuario{% else %}{{ row.deleted_by }}{% endif %}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9" class="empty">Aún no hay bajas registradas.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<p class="admin-audit-note">
+  La huella de email es un hash SHA-256 irreversible. Sirve para detectar re-registros del mismo correo,
+  sin almacenar el email en texto claro.
+</p>
+{% endblock %}

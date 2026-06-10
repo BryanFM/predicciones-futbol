@@ -4,6 +4,8 @@
 {% from "macros/user_avatar.html" import user_avatar %}
 
 {% block title %}{{ match.home_team }} vs {{ match.away_team }} — Hamster Fijas{% endblock %}
+{% block meta_description %}Partido {{ match.home_team }} vs {{ match.away_team }} en Hamster Fijas. Consulta predicciones de la comunidad y registra tu marcador del Mundial 2026.{% endblock %}
+{% block og_type %}article{% endblock %}
 
 {% block content %}
 <a href="/?category_id={{ match.category_id }}" class="back-link">← Volver a partidos</a>

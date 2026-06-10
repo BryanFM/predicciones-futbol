@@ -2037,6 +2037,30 @@ input:focus, select:focus {
 
 .admin-page-header h2 { font-size: 1.35rem; }
 
+.admin-page-header-split {
+  align-items: center;
+}
+
+.admin-page-sub {
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+  max-width: 42rem;
+}
+
+.admin-audit-note {
+  margin: 1rem 0 2rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+  max-width: 42rem;
+  line-height: 1.5;
+}
+
+.hash-cell {
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+}
+
 .admin-quick-links { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 
 .filter-chips { display: flex; gap: 0.5rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
@@ -3445,6 +3469,151 @@ body.cookie-banner-open .site-footer {
   flex-wrap: wrap;
   gap: 0.65rem;
   justify-content: center;
+}
+
+/* ── Account settings ───────────────────────────────────────────────────── */
+.account-page {
+  max-width: 640px;
+  margin: 0 auto 2.5rem;
+}
+
+.account-page-header {
+  margin-bottom: 1.25rem;
+}
+
+.account-page-header h2 {
+  font-size: 1.45rem;
+  margin-bottom: 0.35rem;
+}
+
+.account-page-sub {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.account-card {
+  margin-bottom: 1rem;
+}
+
+.account-card-title {
+  font-size: 1rem;
+  margin-bottom: 1rem;
+}
+
+.account-profile {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.account-details {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.account-detail-row {
+  display: grid;
+  grid-template-columns: 7rem 1fr;
+  gap: 0.5rem;
+  align-items: baseline;
+}
+
+.account-detail-row dt {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.account-detail-row dd {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.account-muted {
+  color: var(--muted);
+}
+
+.account-stats-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.account-stats-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.account-stats-list li:last-child {
+  border-bottom: none;
+}
+
+.account-hint {
+  margin: 0.85rem 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.account-danger {
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.account-danger-text {
+  margin: 0 0 1rem;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.account-danger-text a {
+  color: var(--primary);
+}
+
+.account-delete-form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.account-delete-label {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+}
+
+.account-delete-input {
+  max-width: 220px;
+  padding: 0.55rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+
+@media (max-width: 600px) {
+  .account-profile {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .account-detail-row {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  .account-delete-input {
+    max-width: none;
+    width: 100%;
+  }
 }
 
 /* ── Legal pages ─────────────────────────────────────────────────────────── */

@@ -5,8 +5,11 @@
 {% block title %}Usuarios — Admin{% endblock %}
 
 {% block content %}
-<section class="admin-page-header">
-  <h2>Usuarios registrados</h2>
+<section class="admin-page-header admin-page-header-split">
+  <div>
+    <h2>Usuarios registrados</h2>
+  </div>
+  <a href="/admin/bajas-cuentas" class="btn btn-outline btn-sm">Ver bajas ({{ stats.deleted }})</a>
 </section>
 
 {% if request.query_params.get('msg') %}

@@ -31,6 +31,23 @@ class User(Base):
     )
 
 
+class AccountDeletion(Base):
+    """Registro anonimizado de bajas (sin datos personales)."""
+
+    __tablename__ = "account_deletions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    former_user_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    email_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    registered_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    deleted_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    phone_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    was_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    prediction_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    champion_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    deleted_by: Mapped[str] = mapped_column(String(20), default="self", nullable=False)
+
+
 class PhoneVerification(Base):
     __tablename__ = "phone_verifications"
 
