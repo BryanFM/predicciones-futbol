@@ -3229,3 +3229,121 @@ body.modal-open { overflow: hidden; }
   width: 100px;
   height: 100px;
 }
+
+/* ── Footer ─────────────────────────────────────────────────────────────── */
+.site-footer {
+  margin-top: 3rem;
+  border-top: 1px solid var(--border);
+  padding: 1rem 0;
+  background: var(--bg);
+}
+
+.site-footer-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.site-footer-brand {
+  opacity: 0.7;
+}
+
+.site-footer-links {
+  display: flex;
+  gap: 1rem;
+}
+
+.site-footer-link {
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.site-footer-link:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+/* ── Legal pages ─────────────────────────────────────────────────────────── */
+.legal-page {
+  max-width: 780px;
+  margin: 2rem auto;
+  padding: 0 0.5rem 3rem;
+}
+
+.legal-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 0.25rem;
+}
+
+.legal-updated {
+  color: var(--muted);
+  font-size: 0.82rem;
+  margin-bottom: 2rem;
+}
+
+.legal-section {
+  margin-bottom: 2rem;
+}
+
+.legal-section h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.legal-section p,
+.legal-section li {
+  font-size: 0.9rem;
+  color: var(--text);
+  line-height: 1.65;
+  opacity: 0.9;
+}
+
+.legal-section ul {
+  padding-left: 1.4rem;
+  margin: 0.4rem 0;
+}
+
+.legal-section li {
+  margin-bottom: 0.3rem;
+}
+
+.legal-section a {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.legal-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+.legal-table th,
+.legal-table td {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+}
+
+.legal-table th {
+  background: var(--surface);
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.legal-table td {
+  color: var(--text);
+  opacity: 0.9;
+}
