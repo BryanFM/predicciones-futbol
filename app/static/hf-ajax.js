@@ -25,9 +25,16 @@
   }
 
   async function postForm(url, formData) {
+    var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+    var csrf = csrfMeta && csrfMeta.content ? csrfMeta.content : '';
+    if (csrf && !formData.has('csrf_token')) {
+      formData.set('csrf_token', csrf);
+    }
+    const headers = { 'X-HF-Ajax': '1' };
+    if (csrf) headers['X-CSRF-Token'] = csrf;
     const res = await fetch(url, {
       method: 'POST',
-      headers: { 'X-HF-Ajax': '1' },
+      headers: headers,
       body: formData,
       credentials: 'same-origin',
     });

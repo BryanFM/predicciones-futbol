@@ -25,7 +25,7 @@ services:
       - key: HTTPS_ONLY
         value: "true"
       - key: ENFORCE_UNIQUE_PHONE
-        value: "false"
+        value: "true"
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: GOOGLE_CLIENT_SECRET

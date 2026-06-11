@@ -15,18 +15,28 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
-from app.avatars import avatar_url as avatar_url_for_user, fetch_avatar
+from app.avatars import avatar_url as avatar_url_for_user, fetch_avatar, is_allowed_avatar_url
 from app.auth import get_current_user, oauth, require_admin, require_login, require_verified, upsert_user
+from app.csrf import CSRFMiddleware, csrf_token
 from app.database import Base, engine, get_db
 from app.hf_response import ajax_error, ajax_or_redirect, safe_back, wants_ajax
 from app.models import Category, ChampionPrediction, Match, Prediction, PredictionResult, PredictionType, User
+from app.rate_limit import RateLimitMiddleware
 from app.rendering import render, render_error_page, static_url, templates
+from app.security import SecurityHeadersMiddleware, validate_production_secrets
+
+_IS_PROD = os.environ.get("ENVIRONMENT", "").lower() == "production"
 
 BASE_DIR = Path(__file__).resolve().parent
 
 from app.routers import account, admin, referrals, verify, wagers, yape
 
-app = FastAPI(title="Hamster Fijas")
+app = FastAPI(
+    title="Hamster Fijas",
+    docs_url=None if _IS_PROD else "/docs",
+    redoc_url=None if _IS_PROD else "/redoc",
+    openapi_url=None if _IS_PROD else "/openapi.json",
+)
 app.include_router(verify.router)
 app.include_router(account.router)
 app.include_router(admin.router)
@@ -96,6 +106,8 @@ class CanonicalHostMiddleware(BaseHTTPMiddleware):
 app.add_middleware(ReferralCaptureMiddleware)
 app.add_middleware(NoCacheHTMLMiddleware)
 app.add_middleware(StaticCacheMiddleware)
+app.add_middleware(CSRFMiddleware)
+app.add_middleware(RateLimitMiddleware)
 app.add_middleware(
     SessionMiddleware,
     secret_key=os.environ.get("SECRET_KEY", "dev-secret-change-in-production"),
@@ -104,6 +116,7 @@ app.add_middleware(
     https_only=os.environ.get("HTTPS_ONLY", "false").lower() == "true",
 )
 app.add_middleware(CanonicalHostMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
 
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
@@ -129,7 +142,7 @@ def favicon():
 @app.get("/avatars/{user_id}", include_in_schema=False)
 async def user_avatar_image(user_id: int, db: Session = Depends(get_db)):
     user = db.get(User, user_id)
-    if not user or not user.picture:
+    if not user or not user.picture or not is_allowed_avatar_url(user.picture):
         raise HTTPException(status_code=404, detail="Avatar no encontrado")
     try:
         body, content_type = await fetch_avatar(user.picture)
@@ -267,6 +280,7 @@ def on_startup():
 
     templates.env.globals["YAPE_PAYMENTS_ENABLED"] = yape_payments_enabled()
     templates.env.globals["SORTEO_POPUP_ENABLED"] = sorteo_popup_enabled()
+    validate_production_secrets()
     _validate_oauth_config()
     if os.environ.get("ENVIRONMENT", "").lower() != "production":
         logging.getLogger("uvicorn.error").info("Arrancando bootstrap de BD en segundo plano…")
@@ -608,6 +622,7 @@ def _home_url(
 
 
 templates.env.globals["home_url"] = _home_url
+templates.env.globals["csrf_token"] = csrf_token
 
 # ── Auth ────────────────────────────────────────────────────────────────────
 
@@ -652,8 +667,15 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
     return RedirectResponse("/", status_code=303)
 
 
-@app.get("/auth/logout")
+@app.post("/auth/logout")
 def auth_logout(request: Request):
+    request.session.clear()
+    return RedirectResponse("/", status_code=303)
+
+
+@app.get("/auth/logout", include_in_schema=False)
+def auth_logout_legacy(request: Request):
+    """Compatibilidad con enlaces antiguos; preferir POST."""
     request.session.clear()
     return RedirectResponse("/", status_code=303)
 

@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="csrf-token" content="{{ csrf_token(request) }}">
   <meta name="theme-color" content="#282828" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#F8E8C8" media="(prefers-color-scheme: light)">
   <title>{% block title %}Hamster Fijas{% endblock %}</title>
@@ -183,7 +184,9 @@
             {% endif %}
 
             <div class="profile-menu-footer">
-              <a href="/auth/logout" class="btn btn-outline btn-sm profile-logout">Cerrar sesión</a>
+              <form method="post" action="/auth/logout" class="profile-logout-form">
+                <button type="submit" class="btn btn-outline btn-sm profile-logout">Cerrar sesión</button>
+              </form>
             </div>
           </div>
         </div>
@@ -258,6 +261,21 @@
   </div>
   {% endif %}
   {% block page_scripts %}{% endblock %}
+  <script>
+    (function () {
+      var token = document.querySelector('meta[name="csrf-token"]');
+      var value = token && token.content;
+      if (!value) return;
+      document.querySelectorAll('form[method="post"]').forEach(function (form) {
+        if (form.querySelector('input[name="csrf_token"]')) return;
+        var input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'csrf_token';
+        input.value = value;
+        form.appendChild(input);
+      });
+    })();
+  </script>
   <script src="{{ static_url('lazyload.js') }}" defer></script>
   <script src="{{ static_url('cookie-consent.js') }}" defer></script>
   <script src="{{ static_url('profile-menu.js') }}" defer></script>

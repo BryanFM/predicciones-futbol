@@ -14,6 +14,16 @@ _CACHE: dict[str, tuple[float, bytes, str]] = {}
 _CACHE_TTL_SECONDS = 86_400
 _STALE_GRACE_SECONDS = 604_800
 _USER_AGENT = "HamsterFijas/1.0"
+_ALLOWED_AVATAR_SUFFIXES = ("googleusercontent.com",)
+
+
+def is_allowed_avatar_url(url: str) -> bool:
+    from urllib.parse import urlparse
+
+    host = (urlparse(url).hostname or "").lower()
+    if not host:
+        return False
+    return any(host == suffix or host.endswith(f".{suffix}") for suffix in _ALLOWED_AVATAR_SUFFIXES)
 
 
 def avatar_url(user: Optional[User], size: str = "sm") -> str:
@@ -47,6 +57,8 @@ def _cache_set(url: str, body: bytes, content_type: str) -> None:
 
 
 async def fetch_avatar(url: str) -> tuple[bytes, str]:
+    if not is_allowed_avatar_url(url):
+        raise ValueError("URL de avatar no permitida")
     normalized = normalize_google_avatar_url(url)
     cached = _cache_get(normalized)
     if cached:
