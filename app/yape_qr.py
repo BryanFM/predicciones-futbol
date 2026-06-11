@@ -52,6 +52,48 @@ def _validate_image(data: bytes) -> Optional[str]:
     return _detect_media_type(data)
 
 
+def _read_bytes_from_path(path: Path) -> Optional[tuple[bytes, str]]:
+    if not path.is_file():
+        return None
+    data = path.read_bytes()
+    media_type = _validate_image(data)
+    if media_type:
+        return data, media_type
+    if path.suffix.lower() == ".b64":
+        try:
+            decoded = base64.b64decode(data.decode("ascii").strip(), validate=True)
+        except (UnicodeDecodeError, binascii.Error, ValueError):
+            return None
+        media_type = _validate_image(decoded)
+        if media_type:
+            return decoded, media_type
+    return None
+
+
+def _read_qr_secret_file() -> Optional[tuple[bytes, str]]:
+    """Archivos en Render Secret Files (/etc/secrets) o ruta explícita."""
+    candidates: list[Path] = []
+    configured = os.environ.get("YAPE_QR_SECRET_PATH", "").strip()
+    if configured:
+        candidates.append(Path(configured))
+    candidates.extend(
+        [
+            Path("/etc/secrets/yape-qr.png"),
+            Path("/etc/secrets/yape-qr.jpg"),
+            Path("/etc/secrets/yape-qr.jpeg"),
+            Path("/etc/secrets/yape-qr.webp"),
+            Path("/etc/secrets/yape-qr.b64"),
+            Path.cwd() / "yape-qr.png",
+            Path.cwd() / "yape-qr.b64",
+        ]
+    )
+    for path in candidates:
+        content = _read_bytes_from_path(path)
+        if content:
+            return content
+    return None
+
+
 def _read_qr_file() -> Optional[tuple[bytes, str]]:
     filename = os.environ.get("YAPE_QR_FILE", "qr.png").strip() or "qr.png"
     if not QR_FILENAME_RE.match(filename):
@@ -103,6 +145,9 @@ def yape_qr_content() -> Optional[tuple[bytes, str]]:
     from_file = _read_qr_file()
     if from_file:
         return from_file
+    from_secret = _read_qr_secret_file()
+    if from_secret:
+        return from_secret
     return _read_qr_base64()
 
 

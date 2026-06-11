@@ -74,6 +74,24 @@ class ReferralCaptureMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+class CanonicalHostMiddleware(BaseHTTPMiddleware):
+    """Redirige *.onrender.com al dominio público definido en SITE_URL."""
+
+    async def dispatch(self, request, call_next):
+        if request.url.path == "/health":
+            return await call_next(request)
+        configured = os.environ.get("SITE_URL", "").strip().rstrip("/")
+        if not configured or os.environ.get("ENVIRONMENT", "").lower() != "production":
+            return await call_next(request)
+        host = (request.url.hostname or "").lower()
+        if host.endswith(".onrender.com"):
+            target = configured + request.url.path
+            if request.url.query:
+                target += "?" + request.url.query
+            return RedirectResponse(target, status_code=301)
+        return await call_next(request)
+
+
 app.add_middleware(ReferralCaptureMiddleware)
 app.add_middleware(NoCacheHTMLMiddleware)
 app.add_middleware(StaticCacheMiddleware)
@@ -84,6 +102,7 @@ app.add_middleware(
     same_site="lax",
     https_only=os.environ.get("HTTPS_ONLY", "false").lower() == "true",
 )
+app.add_middleware(CanonicalHostMiddleware)
 
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 

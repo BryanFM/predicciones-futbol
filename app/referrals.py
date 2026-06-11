@@ -60,7 +60,9 @@ def pop_pending_referral_code(request) -> Optional[str]:
 
 
 def referral_link(request, code: str) -> str:
-    base = str(request.base_url).rstrip("/")
+    from app.seo import site_base_url
+
+    base = site_base_url(request)
     return f"{base}/?ref={code}"
 
 
