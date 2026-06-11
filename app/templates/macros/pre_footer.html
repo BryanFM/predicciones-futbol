@@ -11,7 +11,7 @@
               <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
             </svg>
           </span>
-          <p>Escríbenos a <a href="{{ SUPPORT_INSTAGRAM_URL }}" target="_blank" rel="noopener noreferrer">{{ SUPPORT_INSTAGRAM_HANDLE }}</a></p>
+          <p>Escríbenos a <a href="{{ SUPPORT_INSTAGRAM_URL }}"{% if SUPPORT_INSTAGRAM_URL.startswith('http') %} target="_blank" rel="noopener noreferrer"{% endif %}>{{ SUPPORT_INSTAGRAM_HANDLE }}</a></p>
         </li>
         <li class="pre-footer-contact-item">
           <span class="pre-footer-icon" aria-hidden="true">
@@ -29,10 +29,6 @@
           Horario: L-V de 9 a 6pm · Sáb. de 9am a 2pm
         </li>
       </ul>
-      <p class="pre-footer-faq-link pre-footer-faq-link-desktop">
-        <span class="pre-footer-icon pre-footer-icon-inline" aria-hidden="true">?</span>
-        ¿Dudas? Revisa <a href="/preguntas-frecuentes">Preguntas frecuentes</a>.
-      </p>
     </div>
 
     <div class="pre-footer-faq-preview">

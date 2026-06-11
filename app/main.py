@@ -479,11 +479,11 @@ templates.env.globals["YAPE_PAYMENTS_ENABLED"] = yape_payments_enabled()
 templates.env.globals["YAPE_PACKAGES"] = YAPE_PACKAGES
 templates.env.globals["YAPE_RECIPIENT_NAME"] = YAPE_RECIPIENT_NAME
 
-SUPPORT_EMAIL = os.environ.get("SUPPORT_EMAIL", "soporte@nohaysinsuerte.com").strip() or "soporte@nohaysinsuerte.com"
+SUPPORT_EMAIL = os.environ.get("SUPPORT_EMAIL", "soporte@hamsterfijas.com").strip() or "soporte@hamsterfijas.com"
 SUPPORT_INSTAGRAM_URL = os.environ.get(
-    "SUPPORT_INSTAGRAM_URL", "https://www.instagram.com/nohaysinsuerteoficial/"
-).strip() or "https://www.instagram.com/nohaysinsuerteoficial/"
-SUPPORT_INSTAGRAM_HANDLE = os.environ.get("SUPPORT_INSTAGRAM_HANDLE", "@nohaysinsuerte").strip() or "@nohaysinsuerte"
+    "SUPPORT_INSTAGRAM_URL", "mailto:soporte@hamsterfijas.com"
+).strip() or "mailto:soporte@hamsterfijas.com"
+SUPPORT_INSTAGRAM_HANDLE = os.environ.get("SUPPORT_INSTAGRAM_HANDLE", "@hamsterfijas").strip() or "@hamsterfijas"
 
 templates.env.globals["SUPPORT_EMAIL"] = SUPPORT_EMAIL
 templates.env.globals["SUPPORT_INSTAGRAM_URL"] = SUPPORT_INSTAGRAM_URL
