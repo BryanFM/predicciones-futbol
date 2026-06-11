@@ -1,4 +1,4 @@
-"""Configuración de pagos Yape (beta)."""
+"""Configuración de pagos Yape."""
 
 from __future__ import annotations
 
@@ -35,16 +35,26 @@ OPERATION_CODE_RE = re.compile(r"^[A-Za-z0-9]{6,14}$")
 
 
 def yape_payments_enabled() -> bool:
-    raw = os.environ.get("YAPE_PAYMENTS_BETA", "").strip().lower()
-    if raw in ("1", "true", "yes"):
+    enabled_raw = os.environ.get("YAPE_PAYMENTS_ENABLED", "").strip().lower()
+    if enabled_raw in ("1", "true", "yes"):
         return True
-    if raw in ("0", "false", "no"):
+    if enabled_raw in ("0", "false", "no"):
         return False
+
+    # Legacy: solo YAPE_PAYMENTS_BETA=true activaba; false no desactivaba (significaba “no beta”).
+    legacy = os.environ.get("YAPE_PAYMENTS_BETA", "").strip().lower()
+    if legacy in ("1", "true", "yes"):
+        return True
+
     return os.environ.get("ENVIRONMENT", "").lower() == "development"
 
 
 def yape_recipient_phone() -> str:
     """Número peruano de 9 dígitos (sin +51)."""
+    if os.environ.get("ENVIRONMENT", "").lower() == "development":
+        from app.env import refresh_env
+
+        refresh_env()
     raw = os.environ.get("YAPE_RECIPIENT_PHONE", "").strip()
     digits = re.sub(r"\D", "", raw)
     if digits.startswith("51") and len(digits) == 11:

@@ -51,6 +51,7 @@
   </script>
 </head>
 {% from "macros/user_avatar.html" import user_avatar %}
+{% from "macros/yape_promo_banner.html" import yape_promo_banner %}
 <body class="layout-sticky-footer">
   <header class="header">
     <div class="container header-inner">
@@ -132,14 +133,20 @@
                 </span>
                 <span><strong>Hamster puntos</strong><small>Ranking y recompensas</small></span>
               </a>
+              {% if current_user.phone_verified %}
+              <a href="/referidos" class="nav-dropdown-item {% if request.url.path == '/referidos' %}active{% endif %}">
+                <span class="nav-dropdown-icon">👥</span>
+                <span><strong>Invita amigos</strong><small>Gana HP por referidos</small></span>
+              </a>
+              {% endif %}
               <a href="/cuenta" class="nav-dropdown-item {% if request.url.path == '/cuenta' %}active{% endif %}">
                 <span class="nav-dropdown-icon">⚙️</span>
                 <span><strong>Configuración</strong><small>Cuenta y privacidad</small></span>
               </a>
-              {% if YAPE_PAYMENTS_BETA and current_user.phone_verified %}
+              {% if YAPE_PAYMENTS_ENABLED and current_user.phone_verified %}
               <a href="/comprar-yape" class="nav-dropdown-item {% if request.url.path.startswith('/comprar-yape') or request.url.path.startswith('/mis-compras-yape') %}active{% endif %}">
                 <span class="nav-dropdown-icon">💜</span>
-                <span><strong>Comprar HP con Yape</strong><small>Beta · revisión manual</small></span>
+                <span><strong>Comprar HP con Yape</strong><small>Paga con QR oficial</small></span>
               </a>
               {% endif %}
             </div>
@@ -161,7 +168,11 @@
               </a>
               <a href="/admin/compras-yape" class="nav-dropdown-item {% if request.url.path.startswith('/admin/compras-yape') %}active{% endif %}">
                 <span class="nav-dropdown-icon">💜</span>
-                <span><strong>Compras Yape</strong><small>Aprobar pagos beta</small></span>
+                <span><strong>Compras Yape</strong><small>Verificar y acreditar pagos</small></span>
+              </a>
+              <a href="/admin/puntos" class="nav-dropdown-item {% if request.url.path.startswith('/admin/puntos') %}active{% endif %}">
+                <span class="nav-dropdown-icon">🎯</span>
+                <span><strong>Reglas HP</strong><small>Referidos, aciertos, bonos</small></span>
               </a>
             </div>
             {% endif %}
@@ -193,6 +204,7 @@
     {% if error %}
     <div class="alert alert-error page-flash">{{ error }}</div>
     {% endif %}
+    {{ yape_promo_banner(request, current_user) }}
     {% block content %}{% endblock %}
   </main>
   <footer class="site-footer">
@@ -221,9 +233,27 @@
       </div>
     </div>
   </aside>
+  {% if request.url.path == '/' %}
+  <div id="sorteo-popup" class="modal sorteo-popup" aria-hidden="true" role="dialog" aria-labelledby="sorteo-popup-title" hidden>
+    <div class="modal-backdrop"></div>
+    <div class="modal-dialog sorteo-popup-dialog">
+      <button type="button" class="modal-close sorteo-popup-close" aria-label="Cerrar sorteo">×</button>
+      <h2 id="sorteo-popup-title" class="visually-hidden">Sorteo PlayStation 5</h2>
+      <img
+        src="{{ static_url('sorteo.jpeg') }}"
+        alt="Sorteo consola PlayStation PS5 — bases y condiciones Del Puerto y Grangex"
+        class="sorteo-popup-img"
+        decoding="async"
+      >
+    </div>
+  </div>
+  {% endif %}
   {% block page_scripts %}{% endblock %}
   <script src="{{ static_url('lazyload.js') }}" defer></script>
   <script src="{{ static_url('cookie-consent.js') }}" defer></script>
   <script src="{{ static_url('profile-menu.js') }}" defer></script>
+  {% if request.url.path == '/' %}
+  <script src="{{ static_url('sorteo-popup.js') }}" defer></script>
+  {% endif %}
 </body>
 </html>

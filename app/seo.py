@@ -22,6 +22,7 @@ NOINDEX_PREFIXES = (
     "/verificar-telefono",
     "/comprar-yape",
     "/mis-compras-yape",
+    "/yape/qr",
     "/avatars/",
 )
 

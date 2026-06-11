@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.models import User
 from app.flash import consume_flash
 from app.points import user_hamster_points
+from app.points_rules import rules_dict
 
 _TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
 _STATIC_DIR = Path(__file__).resolve().parent / "static"
@@ -59,6 +60,12 @@ def render(
         ctx["user_points"] = user_hamster_points(
             db, current_user.id, _category_id_for_nav(request, ctx)
         )
+    cat_id = _category_id_for_nav(request, ctx)
+    if "hp_rules" not in ctx:
+        hp = rules_dict(db, cat_id)
+        ctx["hp_rules"] = hp
+        ctx.setdefault("SCORE_HIT_POINTS", hp["score_hit"])
+        ctx.setdefault("CHAMPION_HIT_POINTS", hp["champion_hit"])
     return templates.TemplateResponse(name, ctx)
 
 

@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Reglas de Hamster puntos — Admin{% endblock %}
+
+{% block content %}
+<section class="admin-page-header">
+  <h2>Reglas de Hamster puntos</h2>
+  <p class="admin-page-sub">Define cuántos HP se acreditan por cada dinámica. Los valores globales aplican a todos los torneos salvo que definas una excepción.</p>
+</section>
+
+{% if request.query_params.get('msg') %}
+<div class="alert alert-success">{{ request.query_params.get('msg') }}</div>
+{% endif %}
+{% if request.query_params.get('error') %}
+<div class="alert alert-error">{{ request.query_params.get('error') }}</div>
+{% endif %}
+
+<form class="filters-form-compact admin-points-filter" method="get" action="/admin/puntos">
+  <label>Torneo (vacío = reglas globales)
+    <select name="category_id" class="filter-select" onchange="this.form.submit()">
+      <option value="" {% if not selected_category_id %}selected{% endif %}>Global (todos)</option>
+      {% for cat in categories %}
+      <option value="{{ cat.id }}" {% if cat.id == selected_category_id %}selected{% endif %}>{{ cat.name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+</form>
+
+<div class="panel points-rules-grid">
+  {% for rule in rules %}
+  <article class="points-rule-card">
+    <h3>{{ rule.label }}</h3>
+    <p class="points-rule-desc">{{ rule.description }}</p>
+    {% if selected_category_id and rule.has_override %}
+    <p class="points-rule-global-hint">Global: {{ rule.global_hp }} HP</p>
+    {% endif %}
+    <form method="post" action="/admin/puntos" class="points-rule-form">
+      <input type="hidden" name="rule_key" value="{{ rule.rule_key }}">
+      {% if selected_category_id %}<input type="hidden" name="category_id" value="{{ selected_category_id }}">{% endif %}
+      <label>
+        HP
+        <input type="number" name="hp_value" min="0" max="9999" value="{{ rule.hp_value }}" class="input-sm" required>
+      </label>
+      <button type="submit" class="btn btn-primary btn-sm">Guardar</button>
+    </form>
+  </article>
+  {% endfor %}
+</div>
+
+{% if selected_category_id %}
+<form method="post" action="/admin/puntos/recalcular-lideres" class="panel points-recalc-form">
+  <h3>Líderes de grupo</h3>
+  <p class="admin-page-sub">Calcula bonos de líder cuando todos los partidos de un grupo tienen resultado.</p>
+  <input type="hidden" name="category_id" value="{{ selected_category_id }}">
+  <button type="submit" class="btn btn-outline btn-sm">Recalcular líderes de grupo</button>
+</form>
+{% endif %}
+
+<section class="panel">
+  <h3>Referidos recientes</h3>
+  {% if referrals %}
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr><th>Invitado</th><th>Invitó</th><th>Verificado</th><th>Registro</th></tr>
+      </thead>
+      <tbody>
+        {% for r in referrals %}
+        {% set ref = referrers.get(r.referred_by_id) %}
+        <tr>
+          <td>{{ r.name }}<br><small>{{ r.email }}</small></td>
+          <td>{% if ref %}{{ ref.name }}{% else %}—{% endif %}</td>
+          <td>{% if r.phone_verified %}<span class="badge badge-hit">✓</span>{% else %}<span class="badge badge-pending">Pendiente</span>{% endif %}</td>
+          <td>{{ r.created_at.strftime('%d/%m/%Y') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="empty-sm">Aún no hay referidos registrados.</p>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <h3>Bonificaciones recientes</h3>
+  {% if recent_bonuses %}
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr><th>Usuario</th><th>Tipo</th><th>HP</th><th>Detalle</th><th>Fecha</th></tr>
+      </thead>
+      <tbody>
+        {% for b in recent_bonuses %}
+        {% set bu = bonus_users.get(b.user_id) %}
+        <tr>
+          <td>{{ bu.name if bu else b.user_id }}</td>
+          <td>{{ b.bonus_type.value }}</td>
+          <td>+{{ b.hp }}</td>
+          <td>{{ b.notes or b.reference_key }}</td>
+          <td>{{ format_pet(b.created_at) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="empty-sm">Sin bonificaciones aún.</p>
+  {% endif %}
+</section>
+{% endblock %}

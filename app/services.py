@@ -52,6 +52,100 @@ def filter_matches_by_group(query, group_name: Optional[str]):
     return query.filter(Match.group_name == group), group
 
 
+def _init_standing(team: str) -> dict:
+    return {
+        "team": team,
+        "played": 0,
+        "won": 0,
+        "drawn": 0,
+        "lost": 0,
+        "gf": 0,
+        "ga": 0,
+        "gd": 0,
+        "pts": 0,
+    }
+
+
+def compute_group_standings(matches: list[Match]) -> list[dict]:
+    teams: set[str] = set()
+    for m in matches:
+        teams.add(m.home_team)
+        teams.add(m.away_team)
+    table = {t: _init_standing(t) for t in sorted(teams)}
+    for m in matches:
+        if not m.is_finished:
+            continue
+        hs, as_ = m.home_score, m.away_score
+        home, away = table[m.home_team], table[m.away_team]
+        home["played"] += 1
+        away["played"] += 1
+        home["gf"] += hs
+        home["ga"] += as_
+        away["gf"] += as_
+        away["ga"] += hs
+        if hs > as_:
+            home["won"] += 1
+            home["pts"] += 3
+            away["lost"] += 1
+        elif hs < as_:
+            away["won"] += 1
+            away["pts"] += 3
+            home["lost"] += 1
+        else:
+            home["drawn"] += 1
+            away["drawn"] += 1
+            home["pts"] += 1
+            away["pts"] += 1
+    for row in table.values():
+        row["gd"] = row["gf"] - row["ga"]
+    return sorted(
+        table.values(),
+        key=lambda r: (-r["pts"], -r["gd"], -r["gf"], r["team"]),
+    )
+
+
+def get_group_summaries(
+    db: Session,
+    category_id: int,
+    user_id: Optional[int] = None,
+) -> list[dict]:
+    summaries: list[dict] = []
+    for group_name in get_available_groups(db, category_id):
+        matches = (
+            db.query(Match)
+            .filter(Match.category_id == category_id, Match.group_name == group_name)
+            .order_by(Match.match_date)
+            .all()
+        )
+        finished = sum(1 for m in matches if m.is_finished)
+        user_hits = 0
+        if user_id:
+            user_hits = (
+                db.query(Prediction)
+                .join(Match)
+                .filter(
+                    Match.category_id == category_id,
+                    Match.group_name == group_name,
+                    Prediction.user_id == user_id,
+                    Prediction.type == PredictionType.SCORE,
+                    Prediction.result == PredictionResult.HIT,
+                )
+                .count()
+            )
+        summaries.append(
+            {
+                "group_name": group_name,
+                "matches": matches,
+                "standings": compute_group_standings(matches),
+                "played_count": finished,
+                "total_count": len(matches),
+                "is_complete": len(matches) > 0 and finished == len(matches),
+                "user_hits": user_hits,
+            }
+        )
+    return summaries
+
+
 def is_mundial_2026(category: Category) -> bool:
     if category.season == "2026":
         return True

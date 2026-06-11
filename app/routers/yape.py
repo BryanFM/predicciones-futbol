@@ -1,9 +1,9 @@
-"""Compras Yape — solicitudes de usuario (beta)."""
+"""Compras Yape — solicitudes de usuario."""
 
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from sqlalchemy.orm import Session
 
 from app.auth import require_login, require_verified
@@ -15,16 +15,16 @@ from app.yape_policy import (
     MAX_PENDING_REQUESTS,
     OPERATION_CODE_RE,
     YAPE_PACKAGES,
-    format_yape_phone,
     get_package,
     yape_payments_enabled,
     yape_recipient_phone,
 )
+from app.yape_qr import yape_qr_available, yape_qr_content
 
 router = APIRouter(tags=["yape"])
 
 
-def _require_yape_beta() -> None:
+def _require_yape_enabled() -> None:
     if not yape_payments_enabled():
         raise HTTPException(404, "Pagos Yape no disponibles")
 
@@ -36,7 +36,7 @@ def purchase_form(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_verified),
 ):
-    _require_yape_beta()
+    _require_yape_enabled()
     categories = db.query(Category).filter(Category.is_active.is_(True)).order_by(Category.name).all()
     selected = category_id or (categories[0].id if categories else None)
     selected_category = next((c for c in categories if c.id == selected), None)
@@ -49,6 +49,8 @@ def purchase_form(
         .count()
     )
     recipient = yape_recipient_phone()
+    qr_available = yape_qr_available()
+    yape_ready = qr_available or bool(recipient)
 
     return render(
         "yape/purchase.html",
@@ -57,8 +59,8 @@ def purchase_form(
             "selected_category_id": selected,
             "selected_category": selected_category,
             "packages": YAPE_PACKAGES,
-            "yape_phone": recipient,
-            "yape_phone_display": format_yape_phone(recipient),
+            "yape_ready": yape_ready,
+            "yape_qr_available": qr_available,
             "pending_count": pending_count,
             "max_pending": MAX_PENDING_REQUESTS,
         },
@@ -78,7 +80,7 @@ def submit_purchase(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_verified),
 ):
-    _require_yape_beta()
+    _require_yape_enabled()
 
     pkg = get_package(package_id)
     if not pkg:
@@ -132,13 +134,41 @@ def submit_purchase(
     return RedirectResponse("/mis-compras-yape", status_code=303)
 
 
+@router.get("/yape/qr")
+def yape_qr_image(
+    download: bool = False,
+    _: User = Depends(require_verified),
+):
+    """QR privado: solo usuarios con sesión y celular verificado."""
+    _require_yape_enabled()
+    content = yape_qr_content()
+    if not content:
+        raise HTTPException(404, "QR Yape no configurado")
+    data, media_type = content
+    ext = {"image/png": "png", "image/jpeg": "jpg", "image/webp": "webp"}.get(media_type, "png")
+    disposition = (
+        f'attachment; filename="yape-hamster-fijas.{ext}"'
+        if download
+        else "inline"
+    )
+    return Response(
+        content=data,
+        media_type=media_type,
+        headers={
+            "Cache-Control": "private, no-store",
+            "X-Content-Type-Options": "nosniff",
+            "Content-Disposition": disposition,
+        },
+    )
+
+
 @router.get("/mis-compras-yape", response_class=HTMLResponse)
 def my_purchases(
     request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_login),
 ):
-    _require_yape_beta()
+    _require_yape_enabled()
     purchases = (
         db.query(YapePurchaseRequest)
         .filter(YapePurchaseRequest.user_id == current_user.id)

@@ -4,6 +4,8 @@ __pycache__/
 predicciones.db
 .env
 .env.local
+app/private/yape/*
+!app/private/yape/.gitkeep
 .DS_Store
 .claude/
 .vscode/

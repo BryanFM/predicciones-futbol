@@ -10,9 +10,11 @@ from sqlalchemy.orm import Session
 from app.auth import require_admin
 from app.database import get_db
 from app.models import Category, ChampionPrediction, PhoneVerification, Prediction, User, AccountDeletion, YapePurchaseRequest, YapePurchaseStatus
+from app.points import user_hamster_points
 from app.rendering import render
 from app.timezone import peru_now
-from app.yape_policy import YAPE_PACKAGES, get_package
+from app.yape_admin import approve_purchase, register_and_approve_purchase, validate_hp_grant
+from app.yape_policy import YAPE_PACKAGES
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -78,6 +80,15 @@ def list_users(
         )
         champion_by_user = {cp.user_id: cp for cp in champion_rows}
 
+    yape_hp_by_user: dict[int, int] = {}
+    for u in users:
+        pts = user_hamster_points(db, u.id, selected_category_id)
+        yape_hp_by_user[u.id] = pts["purchased_points"]
+
+    from app.referrals import admin_users_referral_maps
+
+    referral_maps = admin_users_referral_maps(db, users)
+
     total = db.query(User).count()
     verified = db.query(User).filter(User.phone_verified.is_(True)).count()
     deleted_total = db.query(AccountDeletion).count()
@@ -88,6 +99,10 @@ def list_users(
             "users": users,
             "pred_counts": pred_counts,
             "champion_by_user": champion_by_user,
+            "yape_hp_by_user": yape_hp_by_user,
+            "referrers": referral_maps["referrers"],
+            "invited_total": referral_maps["invited_total"],
+            "invited_verified": referral_maps["invited_verified"],
             "categories": categories,
             "selected_category": selected_category,
             "selected_category_id": selected_category_id,
@@ -277,12 +292,15 @@ def delete_tournament(
 
 def _yape_redirect(
     filter: Optional[str] = None,
+    user_id: Optional[int] = None,
     msg: Optional[str] = None,
     error: Optional[str] = None,
 ) -> RedirectResponse:
     params = []
     if filter and filter != "all":
         params.append(f"filter={filter}")
+    if user_id:
+        params.append(f"user_id={user_id}")
     if msg:
         params.append(f"msg={msg}")
     if error:
@@ -295,6 +313,7 @@ def _yape_redirect(
 def list_yape_purchases(
     request: Request,
     filter: Optional[str] = None,
+    user_id: Optional[int] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
@@ -305,12 +324,24 @@ def list_yape_purchases(
         query = query.filter(YapePurchaseRequest.status == YapePurchaseStatus.APPROVED)
     elif filter == "rejected":
         query = query.filter(YapePurchaseRequest.status == YapePurchaseStatus.REJECTED)
+    if user_id:
+        query = query.filter(YapePurchaseRequest.user_id == user_id)
 
     purchases = query.limit(200).all()
     user_ids = {p.user_id for p in purchases}
+    if user_id:
+        user_ids.add(user_id)
     users = {u.id: u for u in db.query(User).filter(User.id.in_(user_ids or {0})).all()}
-    categories = {c.id: c for c in db.query(Category).all()}
+    categories = db.query(Category).filter(Category.is_active.is_(True)).order_by(Category.name).all()
+    all_categories = {c.id: c for c in db.query(Category).all()}
     packages = {p["id"]: p for p in YAPE_PACKAGES}
+    verified_users = (
+        db.query(User)
+        .filter(User.phone_verified.is_(True))
+        .order_by(User.name)
+        .all()
+    )
+    filter_user = users.get(user_id) if user_id else None
 
     stats = {
         "pending": db.query(YapePurchaseRequest).filter(YapePurchaseRequest.status == YapePurchaseStatus.PENDING).count(),
@@ -325,8 +356,13 @@ def list_yape_purchases(
             "purchases": purchases,
             "users": users,
             "categories": categories,
+            "all_categories": all_categories,
             "packages": packages,
+            "package_list": YAPE_PACKAGES,
+            "verified_users": verified_users,
             "filter": filter or "all",
+            "filter_user_id": user_id,
+            "filter_user": filter_user,
             "stats": stats,
         },
         request=request,
@@ -335,10 +371,40 @@ def list_yape_purchases(
     )
 
 
+@router.post("/compras-yape/registrar")
+def register_yape_purchase(
+    user_id: int = Form(...),
+    category_id: int = Form(...),
+    package_id: str = Form(...),
+    operation_code: str = Form(...),
+    hp_granted: Optional[int] = Form(None),
+    user_note: str = Form(""),
+    admin_notes: str = Form(""),
+    filter: Optional[str] = Form(None),
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    _, err = register_and_approve_purchase(
+        db,
+        admin=admin,
+        user_id=user_id,
+        category_id=category_id,
+        package_id=package_id,
+        operation_code=operation_code,
+        hp_granted=hp_granted,
+        user_note=user_note,
+        admin_notes=admin_notes,
+    )
+    if err:
+        return _yape_redirect(filter, user_id, error=err.replace(" ", "+"))
+    return _yape_redirect(filter, user_id, msg="Pago+registrado+y+HP+acreditados")
+
+
 @router.post("/compras-yape/{purchase_id}/aprobar")
 def approve_yape_purchase(
     purchase_id: int,
     filter: Optional[str] = Form(None),
+    user_id: Optional[int] = Form(None),
     hp_granted: Optional[int] = Form(None),
     admin_notes: str = Form(""),
     db: Session = Depends(get_db),
@@ -346,42 +412,65 @@ def approve_yape_purchase(
 ):
     purchase = db.get(YapePurchaseRequest, purchase_id)
     if not purchase:
-        return _yape_redirect(filter, error="Solicitud+no+encontrada")
+        return _yape_redirect(filter, user_id, error="Solicitud+no+encontrada")
     if purchase.status != YapePurchaseStatus.PENDING:
-        return _yape_redirect(filter, error="La+solicitud+ya+fue+revisada")
+        return _yape_redirect(filter, user_id, error="La+solicitud+ya+fue+revisada")
 
     granted = hp_granted if hp_granted is not None and hp_granted > 0 else purchase.hp_requested
-    pkg = get_package(purchase.package_id)
-    max_hp = (pkg["hp"] * 2) if pkg else purchase.hp_requested * 2
-    if granted > max_hp:
-        return _yape_redirect(filter, error="HP+otorgados+fuera+de+rango")
-
-    purchase.status = YapePurchaseStatus.APPROVED
-    purchase.hp_granted = granted
-    purchase.reviewed_by_id = admin.id
-    purchase.reviewed_at = peru_now()
-    purchase.admin_notes = admin_notes.strip()[:255] or None
-    db.commit()
-    return _yape_redirect(filter, msg="Compra+aprobada")
+    err = approve_purchase(db, purchase, admin, granted, admin_notes)
+    if err:
+        return _yape_redirect(filter, user_id, error=err.replace(" ", "+"))
+    return _yape_redirect(filter, user_id, msg=f"Compra+aprobada:+{granted}+HP")
 
 
-@router.post("/compras-yape/{purchase_id}/rechazar")
-def reject_yape_purchase(
+@router.post("/compras-yape/{purchase_id}/ajustar-hp")
+def adjust_yape_hp(
     purchase_id: int,
     filter: Optional[str] = Form(None),
+    user_id: Optional[int] = Form(None),
+    hp_granted: int = Form(...),
     admin_notes: str = Form(""),
     db: Session = Depends(get_db),
     admin: User = Depends(require_admin),
 ):
     purchase = db.get(YapePurchaseRequest, purchase_id)
     if not purchase:
-        return _yape_redirect(filter, error="Solicitud+no+encontrada")
+        return _yape_redirect(filter, user_id, error="Solicitud+no+encontrada")
+    if purchase.status != YapePurchaseStatus.APPROVED:
+        return _yape_redirect(filter, user_id, error="Solo+se+pueden+ajustar+compras+aprobadas")
+
+    err = validate_hp_grant(purchase.package_id, purchase.hp_requested, hp_granted)
+    if err:
+        return _yape_redirect(filter, user_id, error=err.replace(" ", "+"))
+
+    purchase.hp_granted = hp_granted
+    note = admin_notes.strip()[:255]
+    if note:
+        purchase.admin_notes = note
+    purchase.reviewed_by_id = admin.id
+    purchase.reviewed_at = peru_now()
+    db.commit()
+    return _yape_redirect(filter, user_id, msg=f"HP+actualizados+a+{hp_granted}")
+
+
+@router.post("/compras-yape/{purchase_id}/rechazar")
+def reject_yape_purchase(
+    purchase_id: int,
+    filter: Optional[str] = Form(None),
+    user_id: Optional[int] = Form(None),
+    admin_notes: str = Form(""),
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    purchase = db.get(YapePurchaseRequest, purchase_id)
+    if not purchase:
+        return _yape_redirect(filter, user_id, error="Solicitud+no+encontrada")
     if purchase.status != YapePurchaseStatus.PENDING:
-        return _yape_redirect(filter, error="La+solicitud+ya+fue+revisada")
+        return _yape_redirect(filter, user_id, error="La+solicitud+ya+fue+revisada")
 
     notes = admin_notes.strip()[:255]
     if not notes:
-        return _yape_redirect(filter, error="Indica+el+motivo+del+rechazo")
+        return _yape_redirect(filter, user_id, error="Indica+el+motivo+del+rechazo")
 
     purchase.status = YapePurchaseStatus.REJECTED
     purchase.hp_granted = 0
@@ -389,4 +478,98 @@ def reject_yape_purchase(
     purchase.reviewed_at = peru_now()
     purchase.admin_notes = notes
     db.commit()
-    return _yape_redirect(filter, msg="Compra+rechazada")
+    return _yape_redirect(filter, user_id, msg="Compra+rechazada")
+
+
+def _points_redirect(
+    category_id: Optional[int] = None,
+    msg: Optional[str] = None,
+    error: Optional[str] = None,
+) -> RedirectResponse:
+    params = []
+    if category_id:
+        params.append(f"category_id={category_id}")
+    if msg:
+        params.append(f"msg={msg}")
+    if error:
+        params.append(f"error={error}")
+    qs = "&".join(params)
+    return RedirectResponse(f"/admin/puntos{'?' + qs if qs else ''}", status_code=303)
+
+
+@router.get("/puntos", response_class=HTMLResponse)
+def points_settings(
+    request: Request,
+    category_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    from app.models import PointBonus, User as UserModel
+    from app.points_rules import get_rules_for_admin, seed_default_rules
+
+    seed_default_rules(db)
+    categories = db.query(Category).order_by(Category.name).all()
+    selected = category_id if category_id is not None else None
+    rules = get_rules_for_admin(db, selected)
+
+    referrals = (
+        db.query(UserModel)
+        .filter(UserModel.referred_by_id.isnot(None))
+        .order_by(UserModel.created_at.desc())
+        .limit(50)
+        .all()
+    )
+    referrers = {u.id: u for u in db.query(UserModel).filter(UserModel.id.in_({r.referred_by_id for r in referrals} or {0})).all()}
+    recent_bonuses = (
+        db.query(PointBonus)
+        .order_by(PointBonus.created_at.desc())
+        .limit(30)
+        .all()
+    )
+    bonus_users = {u.id: u for u in db.query(UserModel).filter(UserModel.id.in_({b.user_id for b in recent_bonuses} or {0})).all()}
+
+    return render(
+        "admin/points.html",
+        {
+            "categories": categories,
+            "selected_category_id": selected,
+            "rules": rules,
+            "referrals": referrals,
+            "referrers": referrers,
+            "recent_bonuses": recent_bonuses,
+            "bonus_users": bonus_users,
+        },
+        request=request,
+        db=db,
+        current_user=current_user,
+    )
+
+
+@router.post("/puntos")
+def save_points_settings(
+    rule_key: str = Form(...),
+    hp_value: int = Form(...),
+    category_id: Optional[int] = Form(None),
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    from app.points_rules import save_rule_hp
+
+    cat_id = category_id if category_id else None
+    try:
+        save_rule_hp(db, rule_key, hp_value, cat_id)
+    except ValueError as exc:
+        return _points_redirect(cat_id, error=str(exc).replace(" ", "+"))
+    return _points_redirect(cat_id, msg="Regla+actualizada")
+
+
+@router.post("/puntos/recalcular-lideres")
+def recalc_group_leaders(
+    category_id: int = Form(...),
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    from app.group_leader import evaluate_group_leaders
+
+    created = evaluate_group_leaders(db, category_id)
+    return _points_redirect(category_id, msg=f"Lideres+de+grupo:+{created}+bonos+nuevos")

@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Invita amigos — Hamster Fijas{% endblock %}
+
+{% block content %}
+<section class="referrals-page">
+  <header class="referrals-header">
+    <h2>Invita amigos</h2>
+    <p class="referrals-sub">Comparte tu enlace. Cuando verifiquen su celular, ambos ganan Hamster puntos extra.</p>
+  </header>
+
+  {% if categories|length > 1 %}
+  <form class="filters-form points-filter" method="get" action="/referidos">
+    <label>Torneo
+      <select name="category_id" class="filter-select" onchange="this.form.submit()">
+        {% for cat in categories %}
+        <option value="{{ cat.id }}" {% if cat.id == selected_category_id %}selected{% endif %}>{{ cat.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+  </form>
+  {% endif %}
+
+  <section class="panel referral-link-card">
+    <h3>Tu enlace de referido</h3>
+    <p class="referral-code-label">Código: <strong>{{ referral_code }}</strong></p>
+    <div class="referral-url-row">
+      <input type="text" class="referral-url-input" id="referral-url" value="{{ referral_url }}" readonly>
+      <button type="button" class="btn btn-primary btn-sm" id="copy-referral-btn">Copiar enlace</button>
+    </div>
+    <ul class="referral-rewards-list">
+      <li>Tú ganas <strong>+{{ hp_rules.referral_referrer }} HP</strong> por cada invitado que verifique su celular.</li>
+      <li>Tu invitado gana <strong>+{{ hp_rules.referral_referred }} HP</strong> al verificar.</li>
+    </ul>
+  </section>
+
+  <div class="stats-grid stats-compact">
+    <div class="stat-card"><span class="stat-label">Invitados</span><span class="stat-value">{{ stats.total_invited }}</span></div>
+    <div class="stat-card hit"><span class="stat-label">Verificados</span><span class="stat-value">{{ stats.verified_invited }}</span></div>
+    <div class="stat-card"><span class="stat-label">HP por referidos</span><span class="stat-value">+{{ stats.referral_hp }}</span></div>
+  </div>
+
+  {% if stats.referred_users %}
+  <section class="panel">
+    <h3>Invitados verificados</h3>
+    <ul class="referral-user-list">
+      {% for u in stats.referred_users %}
+      <li>{{ u.name.split()[0] }} · verificado</li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+</section>
+
+<script>
+(function () {
+  var btn = document.getElementById('copy-referral-btn');
+  var input = document.getElementById('referral-url');
+  if (!btn || !input) return;
+  btn.addEventListener('click', function () {
+    input.select();
+    input.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(input.value).then(function () {
+      btn.textContent = '¡Copiado!';
+      setTimeout(function () { btn.textContent = 'Copiar enlace'; }, 2000);
+    });
+  });
+})();
+</script>
+{% endblock %}

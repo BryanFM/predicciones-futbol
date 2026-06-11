@@ -185,8 +185,99 @@
     {% endif %}
 
     <span class="filters-count">{{ matches|length }} partido{{ 's' if matches|length != 1 else '' }}</span>
+    {% if available_groups %}
+    <a href="#grupos" class="filters-groups-link">Ver grupos</a>
+    {% endif %}
   </form>
 </section>
+
+{% if group_summaries %}
+<section class="panel groups-panel" id="grupos">
+  <div class="section-header groups-panel-header">
+    <h2>Fase de grupos</h2>
+    {% if selected_category %}
+    <span class="section-meta tournament-label">
+      {{ tournament_icon(selected_category, 'xs') }}
+      <span>{{ selected_category.name }}</span>
+    </span>
+    {% endif %}
+  </div>
+
+  <div class="groups-grid">
+    {% for g in group_summaries %}
+    <details class="group-card" {% if selected_group == g.group_name or group_summaries|length == 1 %}open{% endif %}>
+      <summary class="group-card-summary">
+        <span class="group-badge">Grupo {{ g.group_name }}</span>
+        <span class="group-card-meta">{{ g.played_count }}/{{ g.total_count }} partidos jugados</span>
+        {% if current_user and g.user_hits %}
+        <span class="group-card-hits">Tus aciertos: {{ g.user_hits }}</span>
+        {% endif %}
+        {% if g.is_complete %}<span class="badge badge-hit badge-sm">Completo</span>{% endif %}
+      </summary>
+
+      <div class="group-card-body">
+        {% if g.standings %}
+        <div class="table-wrap">
+          <table class="data-table standings-table">
+            <thead>
+              <tr>
+                <th>Equipo</th>
+                <th>PJ</th>
+                <th>G</th>
+                <th>E</th>
+                <th>P</th>
+                <th>GF</th>
+                <th>GC</th>
+                <th>DG</th>
+                <th>Pts</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in g.standings %}
+              <tr>
+                <td class="standings-team">
+                  {{ team_flag(row.team, 'sm') }}
+                  <span>{{ row.team }}</span>
+                </td>
+                <td>{{ row.played }}</td>
+                <td>{{ row.won }}</td>
+                <td>{{ row.drawn }}</td>
+                <td>{{ row.lost }}</td>
+                <td>{{ row.gf }}</td>
+                <td>{{ row.ga }}</td>
+                <td>{% if row.gd > 0 %}+{% endif %}{{ row.gd }}</td>
+                <td><strong>{{ row.pts }}</strong></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% endif %}
+
+        <ul class="group-matches-list">
+          {% for m in g.matches %}
+          <li class="group-match-item {% if m.is_finished %}is-finished{% endif %}">
+            <time>{{ format_pet(m.match_date) }}</time>
+            <span class="group-match-teams">
+              {{ team_flag(m.home_team, 'sm') }} {{ m.home_team }}
+              <span class="group-match-score">
+                {% if m.is_finished %}{{ m.home_score }} - {{ m.away_score }}{% else %}vs{% endif %}
+              </span>
+              {{ m.away_team }} {{ team_flag(m.away_team, 'sm') }}
+            </span>
+          </li>
+          {% endfor %}
+        </ul>
+
+        <a href="/?category_id={{ selected_category_id }}&group={{ g.group_name }}" class="btn btn-outline btn-sm group-filter-link">
+          Filtrar partidos del grupo {{ g.group_name }}
+        </a>
+      </div>
+    </details>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
 
 <section class="matches-section">
   <div class="section-header">
@@ -255,6 +346,9 @@
       </div>
       {% endif %}
       <div class="match-row-date">
+        {% if match.group_name %}
+        <span class="group-badge match-row-group">Grupo {{ match.group_name }}</span>
+        {% endif %}
         <span class="date-day">{{ match.match_date.strftime('%d/%m') }}</span>
         <span class="date-time">{{ match.match_date.strftime('%H:%M') }}</span>
       </div>

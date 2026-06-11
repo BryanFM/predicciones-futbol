@@ -1,9 +1,20 @@
 """Operaciones de cuenta de usuario."""
 
-from app.timezone import peru_now, utc_naive_to_pet
+import hashlib
+
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.models import AccountDeletion, ChampionPrediction, PhoneVerification, Prediction, User
+from app.models import (
+    AccountDeletion,
+    ChampionPrediction,
+    PhoneVerification,
+    PointBonus,
+    Prediction,
+    User,
+    YapePurchaseRequest,
+)
+from app.timezone import peru_now, utc_naive_to_pet
 
 
 def email_fingerprint(email: str) -> str:
@@ -44,6 +55,15 @@ def record_account_deletion(
 def delete_user_account(db: Session, user: User, *, deleted_by: str = "self") -> AccountDeletion:
     entry = record_account_deletion(db, user, deleted_by=deleted_by)
     user_id = user.id
+
+    db.query(User).filter(User.referred_by_id == user_id).update(
+        {User.referred_by_id: None}, synchronize_session=False
+    )
+    db.query(YapePurchaseRequest).filter(YapePurchaseRequest.reviewed_by_id == user_id).update(
+        {YapePurchaseRequest.reviewed_by_id: None}, synchronize_session=False
+    )
+    db.query(PointBonus).filter(PointBonus.user_id == user_id).delete()
+    db.query(YapePurchaseRequest).filter(YapePurchaseRequest.user_id == user_id).delete()
     db.query(PhoneVerification).filter(PhoneVerification.user_id == user_id).delete()
     db.query(Prediction).filter(Prediction.user_id == user_id).delete()
     db.query(ChampionPrediction).filter(ChampionPrediction.user_id == user_id).delete()

@@ -2,19 +2,18 @@
 {% from "macros/tournament_icon.html" import tournament_icon %}
 
 {% block title %}Comprar Hamster puntos con Yape — Hamster Fijas{% endblock %}
-{% block meta_description %}Compra Hamster puntos extra con Yape para impulsar tu ranking en el torneo. Función beta con revisión manual.{% endblock %}
+{% block meta_description %}Compra Hamster puntos extra con Yape escaneando el QR oficial para impulsar tu ranking en el torneo.{% endblock %}
 
 {% block content %}
 <section class="yape-page">
   <div class="yape-page-header">
     <h2>Comprar Hamster puntos</h2>
-    <span class="beta-badge">Beta</span>
   </div>
   <p class="yape-intro">
-    Paga con Yape, envía el código de operación y un admin verificará tu pago antes de acreditar los puntos al torneo seleccionado.
+    Escanea el QR oficial, paga con Yape, envía el código de operación y acreditaremos tus puntos al torneo seleccionado tras verificar el pago.
   </p>
 
-  {% if not yape_phone %}
+  {% if not yape_ready %}
   <div class="alert alert-error">
     Pagos Yape en configuración. Vuelve más tarde o contacta al administrador.
   </div>
@@ -24,10 +23,33 @@
     <h3>Instrucciones</h3>
     <ol class="yape-steps">
       <li>Elige un pack y el torneo al que aplicarán los puntos.</li>
-      <li>Abre Yape y envía el monto exacto a <strong>{{ yape_phone_display }}</strong>.</li>
+      <li>
+        {% if yape_qr_available %}
+        Escanea el QR con Yape, <strong>descárgalo</strong> para pagar desde la galería, o paga el <strong>monto exacto</strong> del pack elegido.
+        {% else %}
+        Abre Yape y paga el <strong>monto exacto</strong> del pack elegido.
+        {% endif %}
+      </li>
       <li>Copia el <strong>código de operación</strong> que aparece en tu app Yape.</li>
       <li>Completa el formulario y espera la aprobación (normalmente en pocas horas).</li>
     </ol>
+    {% if yape_qr_available %}
+    <figure class="yape-qr-panel">
+      <img
+        src="/yape/qr"
+        alt="Código QR Yape de Hamster Fijas"
+        class="yape-qr-image"
+        width="220"
+        height="220"
+        decoding="async"
+        loading="lazy"
+      >
+      <figcaption>Escanea con la app Yape</figcaption>
+      <a href="/yape/qr?download=1" class="btn btn-outline btn-sm yape-qr-download">
+        Descargar imagen QR
+      </a>
+    </figure>
+    {% endif %}
     <p class="yape-note">
       Máximo {{ max_pending }} solicitudes pendientes por usuario.
       {% if pending_count %}Tienes {{ pending_count }} en revisión.{% endif %}
@@ -45,7 +67,6 @@
             <span class="yape-package-label">{{ pkg.label }}</span>
             <span class="yape-package-hp">+{{ pkg.hp }} HP</span>
             <span class="yape-package-price">S/ {{ pkg.soles }}</span>
-            <span class="yape-package-desc">{{ pkg.desc }}</span>
           </span>
         </label>
         {% endfor %}
@@ -89,7 +110,7 @@
   {% endif %}
 
   <p class="yape-disclaimer">
-    Función en beta: los pagos se revisan manualmente. Al usar este servicio aceptas los
+    Los pagos se verifican antes de acreditar HP. Al usar este servicio aceptas los
     <a href="/terminos">Términos y Condiciones</a>.
   </p>
 </section>

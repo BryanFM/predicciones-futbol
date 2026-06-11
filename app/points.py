@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.models import (
     ChampionPrediction,
     Match,
+    PointBonus,
     Prediction,
     PredictionResult,
     PredictionType,
@@ -14,7 +15,9 @@ from app.models import (
     YapePurchaseRequest,
     YapePurchaseStatus,
 )
+from app.points_rules import RULE_CHAMPION_HIT, RULE_SCORE_HIT, get_hp
 
+# Compatibilidad con plantillas que usan constantes (valores por defecto).
 SCORE_HIT_POINTS = 5
 CHAMPION_HIT_POINTS = 50
 
@@ -24,6 +27,9 @@ def user_hamster_points(
     user_id: int,
     category_id: Optional[int] = None,
 ) -> dict:
+    score_hp_unit = get_hp(db, RULE_SCORE_HIT, category_id)
+    champion_hp_unit = get_hp(db, RULE_CHAMPION_HIT, category_id)
+
     score_query = db.query(Prediction).filter(
         Prediction.user_id == user_id,
         Prediction.type == PredictionType.SCORE,
@@ -41,8 +47,8 @@ def user_hamster_points(
         champ_query = champ_query.filter(ChampionPrediction.category_id == category_id)
     champion_hits = champ_query.count()
 
-    score_pts = score_hits * SCORE_HIT_POINTS
-    champion_pts = champion_hits * CHAMPION_HIT_POINTS
+    score_pts = score_hits * score_hp_unit
+    champion_pts = champion_hits * champion_hp_unit
 
     purchased_query = db.query(YapePurchaseRequest).filter(
         YapePurchaseRequest.user_id == user_id,
@@ -52,13 +58,26 @@ def user_hamster_points(
         purchased_query = purchased_query.filter(YapePurchaseRequest.category_id == category_id)
     purchased_pts = sum(row.hp_granted or 0 for row in purchased_query.all())
 
+    bonus_query = db.query(PointBonus).filter(PointBonus.user_id == user_id)
+    if category_id:
+        bonus_query = bonus_query.filter(PointBonus.category_id == category_id)
+    bonuses = bonus_query.all()
+    bonus_pts = sum(b.hp for b in bonuses)
+    referral_pts = sum(b.hp for b in bonuses if b.bonus_type.value.startswith("referral"))
+    group_leader_pts = sum(b.hp for b in bonuses if b.bonus_type.value == "group_leader")
+
     return {
         "score_hits": score_hits,
         "champion_hits": champion_hits,
         "score_points": score_pts,
         "champion_points": champion_pts,
         "purchased_points": purchased_pts,
-        "total": score_pts + champion_pts + purchased_pts,
+        "bonus_points": bonus_pts,
+        "referral_points": referral_pts,
+        "group_leader_points": group_leader_pts,
+        "score_hp_unit": score_hp_unit,
+        "champion_hp_unit": champion_hp_unit,
+        "total": score_pts + champion_pts + purchased_pts + bonus_pts,
     }
 
 

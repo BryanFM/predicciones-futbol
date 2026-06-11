@@ -41,10 +41,19 @@
     <span class="hp-label">Tus Hamster puntos</span>
     <span class="hp-value lg">{{ my_points.total }}</span>
     <div class="hp-breakdown">
-      <span>Marcadores acertados: {{ my_points.score_hits }} × {{ SCORE_HIT_POINTS }} = {{ my_points.score_points }} HP</span>
-      <span>Campeón acertado: {{ my_points.champion_hits }} × {{ CHAMPION_HIT_POINTS }} = {{ my_points.champion_points }} HP</span>
+      <span>Marcadores acertados: {{ my_points.score_hits }} × {{ my_points.score_hp_unit }} = {{ my_points.score_points }} HP</span>
+      <span>Campeón acertado: {{ my_points.champion_hits }} × {{ my_points.champion_hp_unit }} = {{ my_points.champion_points }} HP</span>
       {% if my_points.purchased_points %}
       <span>Comprados con Yape: +{{ my_points.purchased_points }} HP</span>
+      {% endif %}
+      {% if my_points.referral_points %}
+      <span>Referidos: +{{ my_points.referral_points }} HP</span>
+      {% endif %}
+      {% if my_points.group_leader_points %}
+      <span>Líder de grupo: +{{ my_points.group_leader_points }} HP</span>
+      {% endif %}
+      {% if my_points.bonus_points > my_points.referral_points + my_points.group_leader_points %}
+      <span>Otros bonos: +{{ my_points.bonus_points - my_points.referral_points - my_points.group_leader_points }} HP</span>
       {% endif %}
     </div>
   </div>
@@ -53,13 +62,18 @@
   <div class="rules-box">
     <h3>¿Cómo se ganan?</h3>
     <ul>
-      <li>⚽ Marcador exacto acertado → <strong>{{ SCORE_HIT_POINTS }} Hamster puntos</strong></li>
+      <li>⚽ Marcador exacto acertado → <strong>{{ hp_rules.score_hit }} Hamster puntos</strong></li>
       <li class="rules-item-with-icon">
         {{ tournament_icon(selected_category, 'xs') }}
-        Campeón del torneo acertado → <strong>{{ CHAMPION_HIT_POINTS }} Hamster puntos</strong>
+        Campeón del torneo acertado → <strong>{{ hp_rules.champion_hit }} Hamster puntos</strong>
       </li>
+      <li>👥 Invita amigos → <strong>+{{ hp_rules.referral_referrer }} HP</strong> por invitado verificado (<a href="/referidos">tu enlace</a>)</li>
+      <li>🏆 Líder de grupo → <strong>+{{ hp_rules.group_leader }} HP</strong> (más aciertos en fase de grupos)</li>
       <li>🔒 La predicción de campeón cierra al iniciar el torneo</li>
       <li>🎯 Solo cuenta el marcador exacto (local y visitante)</li>
+      {% if YAPE_PAYMENTS_ENABLED %}
+      <li>💜 Compra HP extra con Yape (QR oficial)</li>
+      {% endif %}
     </ul>
   </div>
 
@@ -109,21 +123,6 @@
       <span class="prize-desc">Premio sorpresa</span>
     </div>
   </div>
-
-  {% if YAPE_PAYMENTS_BETA and current_user and current_user.phone_verified %}
-  <section class="panel yape-cta-panel">
-    <h3>Impulsa tu ranking <span class="beta-badge">Beta</span></h3>
-    <p>Compra Hamster puntos extra con Yape. Un admin verifica tu pago antes de acreditarlos.</p>
-    <div class="yape-cta-actions">
-      <a href="/comprar-yape{% if selected_category_id %}?category_id={{ selected_category_id }}{% endif %}" class="btn btn-primary">Comprar con Yape</a>
-      <a href="/mis-compras-yape" class="btn btn-outline btn-sm">Mis compras</a>
-    </div>
-  </section>
-  {% elif YAPE_PAYMENTS_BETA and current_user and not current_user.phone_verified %}
-  <section class="panel yape-cta-panel">
-    <p>Para comprar Hamster puntos con Yape primero debes <a href="/verificar-telefono">verificar tu celular</a>.</p>
-  </section>
-  {% endif %}
 
   {% if not current_user %}
   <a href="/auth/login" class="btn btn-google" style="margin-top:1.5rem">

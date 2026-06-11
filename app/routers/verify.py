@@ -79,6 +79,10 @@ def confirm_code(
     from datetime import datetime
     current_user.phone_verified_at = datetime.utcnow()
     db.commit()
+    db.refresh(current_user)
+    from app.referrals import credit_referral_on_verify
+
+    credit_referral_on_verify(db, current_user)
     request.session.pop("pending_phone", None)
     flash(request, msg="Teléfono verificado correctamente")
     return RedirectResponse("/", status_code=303)

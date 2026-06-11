@@ -24,13 +24,14 @@ from app.rendering import render, render_error_page, static_url, templates
 
 BASE_DIR = Path(__file__).resolve().parent
 
-from app.routers import account, admin, verify, yape
+from app.routers import account, admin, referrals, verify, yape
 
 app = FastAPI(title="Hamster Fijas")
 app.include_router(verify.router)
 app.include_router(account.router)
 app.include_router(admin.router)
 app.include_router(yape.router)
+app.include_router(referrals.router)
 
 
 class NoCacheHTMLMiddleware(BaseHTTPMiddleware):
@@ -61,6 +62,19 @@ class StaticCacheMiddleware(BaseHTTPMiddleware):
         return response
 
 
+class ReferralCaptureMiddleware(BaseHTTPMiddleware):
+    """Guarda ?ref= en sesión (debe ejecutarse dentro de SessionMiddleware)."""
+
+    async def dispatch(self, request, call_next):
+        ref = request.query_params.get("ref")
+        if ref:
+            from app.referrals import capture_referral_code
+
+            capture_referral_code(request, ref)
+        return await call_next(request)
+
+
+app.add_middleware(ReferralCaptureMiddleware)
 app.add_middleware(NoCacheHTMLMiddleware)
 app.add_middleware(StaticCacheMiddleware)
 app.add_middleware(
@@ -221,13 +235,22 @@ async def hf_unhandled_exception_handler(request: Request, exc: Exception):
 
 @app.on_event("startup")
 def on_startup():
+    from app.yape_policy import yape_payments_enabled
+
+    templates.env.globals["YAPE_PAYMENTS_ENABLED"] = yape_payments_enabled()
     _validate_oauth_config()
     Base.metadata.create_all(bind=engine)
     _run_migrations()
     db = next(get_db())
     try:
         from app.services import seed_database
+        from app.points_rules import seed_default_rules
+        from app.referrals import ensure_referral_code
+
         seed_database(db)
+        seed_default_rules(db)
+        for user in db.query(User).filter(User.referral_code.is_(None)).all():
+            ensure_referral_code(db, user)
     finally:
         db.close()
 
@@ -311,6 +334,17 @@ def _run_migrations():
                 "CREATE UNIQUE INDEX IF NOT EXISTS ix_champion_predictions_user_category"
                 " ON champion_predictions (user_id, category_id);"
             ))
+            conn.execute(text(
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_code VARCHAR(12);"
+            ))
+            conn.execute(text(
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by_id INTEGER"
+                " REFERENCES users(id) ON DELETE SET NULL;"
+            ))
+            conn.execute(text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS ix_users_referral_code"
+                " ON users (referral_code) WHERE referral_code IS NOT NULL;"
+            ))
         else:
             user_cols = {row[1] for row in conn.execute(text("PRAGMA table_info(users)"))}
             if "phone_number" not in user_cols:
@@ -321,6 +355,12 @@ def _run_migrations():
                 ))
             if "phone_verified_at" not in user_cols:
                 conn.execute(text("ALTER TABLE users ADD COLUMN phone_verified_at DATETIME;"))
+            if "referral_code" not in user_cols:
+                conn.execute(text("ALTER TABLE users ADD COLUMN referral_code VARCHAR(12);"))
+            if "referred_by_id" not in user_cols:
+                conn.execute(text(
+                    "ALTER TABLE users ADD COLUMN referred_by_id INTEGER REFERENCES users(id);"
+                ))
 
             cat_cols = {row[1] for row in conn.execute(text("PRAGMA table_info(categories)"))}
             if "description" not in cat_cols:
@@ -397,12 +437,10 @@ templates.env.globals["CHAMPION_HIT_POINTS"] = CHAMPION_HIT_POINTS
 templates.env.globals["PredictionResult"] = PredictionResult
 templates.env.globals["PredictionType"] = PredictionType
 
-from app.yape_policy import YAPE_PACKAGES, yape_payments_enabled, yape_recipient_phone, format_yape_phone
+from app.yape_policy import YAPE_PACKAGES, yape_payments_enabled
 
-templates.env.globals["YAPE_PAYMENTS_BETA"] = yape_payments_enabled()
+templates.env.globals["YAPE_PAYMENTS_ENABLED"] = yape_payments_enabled()
 templates.env.globals["YAPE_PACKAGES"] = YAPE_PACKAGES
-templates.env.globals["yape_recipient_phone"] = yape_recipient_phone
-templates.env.globals["format_yape_phone"] = format_yape_phone
 def _public_env(name: str, *, production_default: str = "") -> str:
     value = os.environ.get(name, "").strip()
     if value:
@@ -459,21 +497,39 @@ templates.env.globals["home_url"] = _home_url
 
 @app.get("/auth/login")
 async def auth_login(request: Request):
+    from app.referrals import capture_referral_code
+
+    capture_referral_code(request, request.query_params.get("ref"))
     redirect_uri = request.url_for("auth_callback")
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 
 @app.get("/auth/callback", name="auth_callback")
 async def auth_callback(request: Request, db: Session = Depends(get_db)):
+    from app.flash import flash
+    from app.referrals import resolve_referrer_id
+
     token = await oauth.google.authorize_access_token(request)
     info = token.get("userinfo") or await oauth.google.userinfo(token=token)
+    ref_code = request.session.get("referral_code")
+    referred_by_id = resolve_referrer_id(db, ref_code) if ref_code else None
+    had_referrer = bool(
+        db.query(User).filter(User.google_id == info["sub"], User.referred_by_id.isnot(None)).first()
+    )
     user = upsert_user(
         db,
         google_id=info["sub"],
         email=info["email"],
         name=info.get("name", info["email"]),
         picture=info.get("picture", ""),
+        referred_by_id=referred_by_id,
     )
+    if ref_code:
+        request.session.pop("referral_code", None)
+    if referred_by_id and user.referred_by_id == referred_by_id and not had_referrer:
+        referrer = db.get(User, referred_by_id)
+        if referrer:
+            flash(request, msg=f"Invitación de {referrer.name.split()[0]} registrada. Verifica tu celular para ganar HP extra.")
     request.session["user_id"] = user.id
     if not user.phone_verified and not user.is_admin:
         return RedirectResponse("/verificar-telefono", status_code=303)
@@ -505,6 +561,7 @@ def home(
         get_available_match_dates,
         get_champion_deadline,
         get_champion_prediction_stats,
+        get_group_summaries,
         get_match_outcome_stats_batch,
         get_stats,
         get_tournament_starts_at,
@@ -532,6 +589,7 @@ def home(
     matches = matches_query.all()
     available_dates = get_available_match_dates(db, selected)
     available_groups = get_available_groups(db, selected)
+    group_summaries = get_group_summaries(db, selected, current_user.id if current_user else None) if selected else []
     stats = get_stats(db, selected)
 
     tournament_teams: list[str] = []
@@ -568,6 +626,7 @@ def home(
             "selected_group": selected_group or "",
             "available_dates": available_dates,
             "available_groups": available_groups,
+            "group_summaries": group_summaries,
             "matches": matches,
             "stats": stats,
             "tournament_teams": tournament_teams,
@@ -597,6 +656,9 @@ def puntos_page(
     selected_category = next((c for c in categories if c.id == selected), None)
     board = leaderboard(db, selected)
     my_points = user_hamster_points(db, current_user.id, selected) if current_user else None
+    from app.points_rules import rules_dict
+
+    hp_rules = rules_dict(db, selected)
     countdown_ms = None
     if selected_category:
         from app.services import get_tournament_starts_at
@@ -612,6 +674,7 @@ def puntos_page(
             "selected_category": selected_category,
             "leaderboard": board,
             "my_points": my_points,
+            "hp_rules": hp_rules,
             "countdown_ms": countdown_ms,
         },
         request=request,
@@ -777,7 +840,10 @@ def update_score(
     match.home_score = home_score
     match.away_score = away_score
     from app.services import reevaluate_match_predictions
+    from app.group_leader import evaluate_group_leaders
+
     reevaluate_match_predictions(db, match)
+    evaluate_group_leaders(db, match.category_id)
     return ajax_or_redirect(
         request,
         f"/partidos/{match_id}",

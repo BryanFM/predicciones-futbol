@@ -1,0 +1,26 @@
+{% macro yape_promo_banner(request, current_user=none) %}
+{% if YAPE_PAYMENTS_ENABLED and not request.url.path.startswith('/admin') and request.url.path not in ['/comprar-yape', '/mis-compras-yape', '/auth/login', '/privacidad', '/terminos', '/cuenta'] %}
+{% set cat_qs = request.query_params.get('category_id') %}
+<section class="yape-promo-banner panel" role="region" aria-label="Comprar Hamster puntos con Yape">
+  <div class="yape-promo-banner-inner">
+    <div class="yape-promo-banner-icon" aria-hidden="true">💜</div>
+    <div class="yape-promo-banner-copy">
+      <p class="yape-promo-banner-title">Sube en el ranking con Yape</p>
+      <p class="yape-promo-banner-desc">
+        Escanea el QR oficial, paga con Yape y gana Hamster puntos extra. Packs desde <strong>S/ {{ YAPE_PACKAGES[0].soles }}</strong> (+{{ YAPE_PACKAGES[0].hp }} HP).
+      </p>
+    </div>
+    <div class="yape-promo-banner-actions">
+      {% if current_user and current_user.phone_verified %}
+      <a href="/comprar-yape{% if cat_qs %}?category_id={{ cat_qs }}{% endif %}" class="btn btn-primary btn-sm">Yapear y ganar HP</a>
+      <a href="/proximamente{% if cat_qs %}?category_id={{ cat_qs }}{% endif %}" class="btn btn-outline btn-sm">Ver ranking</a>
+      {% elif current_user %}
+      <a href="/verificar-telefono" class="btn btn-primary btn-sm">Verificar celular</a>
+      {% else %}
+      <a href="/auth/login" class="btn btn-primary btn-sm">Entrar para Yapear</a>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endif %}
+{% endmacro %}

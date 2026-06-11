@@ -43,10 +43,10 @@ services:
         value: x51o85xggi
       - key: SITE_URL
         value: https://predicciones-futbol-tmyr.onrender.com
-      - key: YAPE_PAYMENTS_BETA
+      - key: YAPE_PAYMENTS_ENABLED
         value: "true"
       - key: YAPE_RECIPIENT_PHONE
-        sync: false
+        value: "944717071"
 
 databases:
   - name: predicciones-db

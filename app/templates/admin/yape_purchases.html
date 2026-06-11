@@ -7,7 +7,7 @@
 <section class="admin-page-header admin-page-header-split">
   <div>
     <h2>Compras Yape</h2>
-    <p class="admin-page-sub">Revisa pagos y aprueba o rechaza solicitudes (beta).</p>
+    <p class="admin-page-sub">Registra pagos, aprueba solicitudes y acredita Hamster puntos.</p>
   </div>
   {% if stats.pending %}
   <span class="badge badge-pending yape-pending-badge">{{ stats.pending }} pendiente{{ 's' if stats.pending != 1 else '' }}</span>
@@ -28,19 +28,72 @@
   <div class="stat-card miss"><span class="stat-label">Rechazadas</span><span class="stat-value">{{ stats.rejected }}</span></div>
 </div>
 
+<section class="panel yape-admin-register">
+  <h3>Registrar pago Yape y acreditar HP</h3>
+  <p class="admin-page-sub">Usa esto si el usuario pagó pero no envió solicitud, o verificaste el pago directamente en tu app Yape.</p>
+  <form method="post" action="/admin/compras-yape/registrar" class="yape-admin-register-form">
+    {% if filter != 'all' %}<input type="hidden" name="filter" value="{{ filter }}">{% endif %}
+    <label>
+      Usuario
+      <select name="user_id" class="filter-select" required>
+        <option value="">— Elegir —</option>
+        {% for u in verified_users %}
+        <option value="{{ u.id }}" {% if filter_user_id == u.id %}selected{% endif %}>{{ u.name }} · {{ u.email }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Torneo
+      <select name="category_id" class="filter-select" required>
+        {% for cat in categories %}
+        <option value="{{ cat.id }}">{{ cat.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Pack
+      <select name="package_id" class="filter-select" required>
+        {% for pkg in package_list %}
+        <option value="{{ pkg.id }}">{{ pkg.label }} — S/ {{ pkg.soles }} (+{{ pkg.hp }} HP)</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Código operación Yape
+      <input type="text" name="operation_code" required minlength="6" maxlength="14" pattern="[A-Za-z0-9]{6,14}" placeholder="Desde tu app Yape">
+    </label>
+    <label>
+      HP a acreditar
+      <input type="number" name="hp_granted" min="1" class="input-sm" placeholder="Por defecto: del pack">
+    </label>
+    <label>
+      Nota admin
+      <input type="text" name="admin_notes" maxlength="255" placeholder="Verificado en Yape 10/06">
+    </label>
+    <button type="submit" class="btn btn-primary btn-sm">Registrar y acreditar</button>
+  </form>
+</section>
+
 <div class="filter-chips">
-  <a href="/admin/compras-yape" class="chip {% if filter == 'all' %}active{% endif %}">Todas</a>
-  <a href="/admin/compras-yape?filter=pending" class="chip {% if filter == 'pending' %}active{% endif %}">Pendientes</a>
-  <a href="/admin/compras-yape?filter=approved" class="chip {% if filter == 'approved' %}active{% endif %}">Aprobadas</a>
-  <a href="/admin/compras-yape?filter=rejected" class="chip {% if filter == 'rejected' %}active{% endif %}">Rechazadas</a>
+  <a href="/admin/compras-yape{% if filter_user_id %}?user_id={{ filter_user_id }}{% endif %}" class="chip {% if filter == 'all' %}active{% endif %}">Todas</a>
+  <a href="/admin/compras-yape?filter=pending{% if filter_user_id %}&user_id={{ filter_user_id }}{% endif %}" class="chip {% if filter == 'pending' %}active{% endif %}">Pendientes</a>
+  <a href="/admin/compras-yape?filter=approved{% if filter_user_id %}&user_id={{ filter_user_id }}{% endif %}" class="chip {% if filter == 'approved' %}active{% endif %}">Aprobadas</a>
+  <a href="/admin/compras-yape?filter=rejected{% if filter_user_id %}&user_id={{ filter_user_id }}{% endif %}" class="chip {% if filter == 'rejected' %}active{% endif %}">Rechazadas</a>
+  {% if filter_user_id %}
+  <a href="/admin/compras-yape?filter={{ filter }}" class="chip chip-clear">✕ Quitar filtro usuario</a>
+  {% endif %}
 </div>
+
+{% if filter_user %}
+<p class="yape-filter-user">Mostrando compras de <strong>{{ filter_user.name }}</strong> ({{ filter_user.email }})</p>
+{% endif %}
 
 {% if purchases %}
 <div class="panel yape-admin-list">
   {% for p in purchases %}
   {% set user = users.get(p.user_id) %}
   {% set pkg = packages.get(p.package_id) %}
-  {% set cat = categories.get(p.category_id) if p.category_id else none %}
+  {% set cat = all_categories.get(p.category_id) if p.category_id else none %}
   <article class="yape-admin-card {% if p.status.value == 'pending' %}is-pending{% endif %}">
     <header class="yape-admin-card-head">
       <div class="yape-admin-user">
@@ -54,7 +107,7 @@
         {% if p.status.value == 'pending' %}
         <span class="badge badge-pending">Pendiente</span>
         {% elif p.status.value == 'approved' %}
-        <span class="badge badge-hit">Aprobada</span>
+        <span class="badge badge-hit">Aprobada · +{{ p.hp_granted or 0 }} HP</span>
         {% else %}
         <span class="badge badge-miss">Rechazada</span>
         {% endif %}
@@ -68,9 +121,6 @@
       <div><dt>Código Yape</dt><dd><code>{{ p.operation_code }}</code></dd></div>
       <div><dt>Torneo</dt><dd>{{ cat.name if cat else '—' }}</dd></div>
       {% if p.user_note %}<div><dt>Nota usuario</dt><dd>{{ p.user_note }}</dd></div>{% endif %}
-      {% if p.hp_granted is not none and p.status.value == 'approved' %}
-      <div><dt>HP acreditados</dt><dd>+{{ p.hp_granted }}</dd></div>
-      {% endif %}
       {% if p.admin_notes %}<div><dt>Nota admin</dt><dd>{{ p.admin_notes }}</dd></div>{% endif %}
     </dl>
 
@@ -78,23 +128,41 @@
     <div class="yape-admin-actions">
       <form method="post" action="/admin/compras-yape/{{ p.id }}/aprobar" class="yape-approve-form">
         <input type="hidden" name="filter" value="{{ filter }}">
+        {% if filter_user_id %}<input type="hidden" name="user_id" value="{{ filter_user_id }}">{% endif %}
         <label>
-          HP a otorgar
+          HP a acreditar
           <input type="number" name="hp_granted" min="1" max="{{ (pkg.hp * 2) if pkg else p.hp_requested * 2 }}" value="{{ p.hp_requested }}" class="input-sm">
         </label>
         <label>
           Nota (opcional)
           <input type="text" name="admin_notes" maxlength="255" placeholder="Verificado en Yape">
         </label>
-        <button type="submit" class="btn btn-primary btn-sm">Aprobar</button>
+        <button type="submit" class="btn btn-primary btn-sm">Aprobar y acreditar HP</button>
       </form>
       <form method="post" action="/admin/compras-yape/{{ p.id }}/rechazar" class="yape-reject-form">
         <input type="hidden" name="filter" value="{{ filter }}">
+        {% if filter_user_id %}<input type="hidden" name="user_id" value="{{ filter_user_id }}">{% endif %}
         <label>
           Motivo del rechazo
           <input type="text" name="admin_notes" required maxlength="255" placeholder="Monto no coincide, código inválido…">
         </label>
         <button type="submit" class="btn btn-outline btn-sm">Rechazar</button>
+      </form>
+    </div>
+    {% elif p.status.value == 'approved' %}
+    <div class="yape-admin-actions">
+      <form method="post" action="/admin/compras-yape/{{ p.id }}/ajustar-hp" class="yape-adjust-form">
+        <input type="hidden" name="filter" value="{{ filter }}">
+        {% if filter_user_id %}<input type="hidden" name="user_id" value="{{ filter_user_id }}">{% endif %}
+        <label>
+          Ajustar HP acreditados
+          <input type="number" name="hp_granted" min="1" max="{{ (pkg.hp * 2) if pkg else p.hp_requested * 2 }}" value="{{ p.hp_granted or p.hp_requested }}" class="input-sm">
+        </label>
+        <label>
+          Motivo del ajuste
+          <input type="text" name="admin_notes" maxlength="255" placeholder="Corrección manual">
+        </label>
+        <button type="submit" class="btn btn-outline btn-sm">Actualizar HP</button>
       </form>
     </div>
     {% endif %}

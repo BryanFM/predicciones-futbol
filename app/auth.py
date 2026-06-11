@@ -68,7 +68,14 @@ def require_verified(user: User = Depends(require_login)) -> User:
     return user
 
 
-def upsert_user(db: Session, google_id: str, email: str, name: str, picture: str) -> User:
+def upsert_user(
+    db: Session,
+    google_id: str,
+    email: str,
+    name: str,
+    picture: str,
+    referred_by_id: Optional[int] = None,
+) -> User:
     should_be_admin = _should_be_admin(email)
     user = db.query(User).filter(User.google_id == google_id).first()
     if user:
@@ -76,9 +83,21 @@ def upsert_user(db: Session, google_id: str, email: str, name: str, picture: str
         user.picture = picture
         user.email = email
         user.is_admin = should_be_admin
+        from app.referrals import apply_referred_by, ensure_referral_code
+
+        apply_referred_by(db, user, referred_by_id)
+        ensure_referral_code(db, user)
         db.commit()
         db.refresh(user)
         return user
+
+    from app.referrals import ensure_referral_code, generate_referral_code
+
+    ref_id = referred_by_id
+    if ref_id:
+        referrer = db.get(User, ref_id)
+        if not referrer or referrer.email.lower() == email.lower():
+            ref_id = None
 
     user = User(
         google_id=google_id,
@@ -86,6 +105,8 @@ def upsert_user(db: Session, google_id: str, email: str, name: str, picture: str
         name=name,
         picture=picture,
         is_admin=should_be_admin,
+        referral_code=generate_referral_code(db),
+        referred_by_id=ref_id,
     )
     db.add(user)
     db.commit()

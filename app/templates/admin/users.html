@@ -59,6 +59,9 @@
           <th>Campeón{% if selected_category %} <span class="th-hint">({{ selected_category.name }})</span>{% endif %}</th>
           <th>Admin</th>
           <th>Predicciones</th>
+          <th>Referidos</th>
+          <th>Invitado por</th>
+          <th>HP Yape</th>
           <th>Registro</th>
           <th>Acciones</th>
         </tr>
@@ -101,6 +104,40 @@
           </td>
           <td>{% if u.is_admin %}<span class="admin-badge">admin</span>{% else %}—{% endif %}</td>
           <td>{{ pred_counts.get(u.id, 0) }}</td>
+          <td class="admin-referral-cell">
+            {% set inv_total = invited_total.get(u.id, 0) %}
+            {% if inv_total %}
+            <span class="admin-referral-count" title="{{ invited_verified.get(u.id, 0) }} invitado(s) verificados">
+              {{ inv_total }}
+              {% set inv_ok = invited_verified.get(u.id, 0) %}
+              {% if inv_ok %}<span class="badge badge-hit badge-sm">{{ inv_ok }} ✓</span>{% endif %}
+            </span>
+            {% else %}
+            <span class="muted-sm">0</span>
+            {% endif %}
+          </td>
+          <td class="admin-referral-cell">
+            {% if u.referred_by_id %}
+            {% set ref = referrers.get(u.referred_by_id) %}
+            {% if ref %}
+            <span class="admin-referred-by">{{ ref.name.split()[0] }}</span>
+            <small class="muted-sm admin-referral-code">{{ ref.referral_code }}</small>
+            {% if u.phone_verified %}<span class="badge badge-hit badge-sm" title="Referido verificado">✓</span>{% else %}<span class="badge badge-pending badge-sm" title="Pendiente verificar">⏳</span>{% endif %}
+            {% else %}
+            <span class="muted-sm">Usuario #{{ u.referred_by_id }}</span>
+            {% endif %}
+            {% else %}
+            <span class="muted-sm">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% set yape_hp = yape_hp_by_user.get(u.id, 0) %}
+            {% if yape_hp %}
+            <a href="/admin/compras-yape?user_id={{ u.id }}&filter=approved" class="yape-hp-link">+{{ yape_hp }} HP</a>
+            {% else %}
+            <a href="/admin/compras-yape?user_id={{ u.id }}" class="muted-sm yape-hp-link">Registrar</a>
+            {% endif %}
+          </td>
           <td>{{ u.created_at.strftime('%d/%m/%Y') }}</td>
           <td>
             {% if u.phone_verified %}
@@ -115,7 +152,7 @@
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="9" class="empty">No hay usuarios con este filtro.</td></tr>
+        <tr><td colspan="12" class="empty">No hay usuarios con este filtro.</td></tr>
         {% endfor %}
       </tbody>
     </table>

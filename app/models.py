@@ -2,7 +2,7 @@ import enum
 from datetime import datetime, timedelta
 from typing import Optional
 
-from sqlalchemy import Boolean, DateTime, Enum, Float, ForeignKey, Integer, String
+from sqlalchemy import Boolean, DateTime, Enum, Float, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -23,6 +23,8 @@ class User(Base):
     phone_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     phone_verified_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    referral_code: Mapped[Optional[str]] = mapped_column(String(12), unique=True, nullable=True, index=True)
+    referred_by_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     predictions: Mapped[list["Prediction"]] = relationship("Prediction", back_populates="user")
@@ -33,6 +35,9 @@ class User(Base):
         "YapePurchaseRequest",
         back_populates="user",
         foreign_keys="YapePurchaseRequest.user_id",
+    )
+    referred_by: Mapped[Optional["User"]] = relationship(
+        "User", remote_side="User.id", foreign_keys=[referred_by_id]
     )
 
 
@@ -191,7 +196,7 @@ class YapePurchaseStatus(str, enum.Enum):
 
 
 class YapePurchaseRequest(Base):
-    """Solicitud de compra vía Yape (aprobación manual en beta)."""
+    """Solicitud de compra vía Yape (verificación admin)."""
 
     __tablename__ = "yape_purchase_requests"
 
@@ -215,3 +220,52 @@ class YapePurchaseRequest(Base):
     user: Mapped["User"] = relationship("User", foreign_keys=[user_id], back_populates="yape_purchases")
     category: Mapped[Optional["Category"]] = relationship("Category")
     reviewed_by: Mapped[Optional["User"]] = relationship("User", foreign_keys=[reviewed_by_id])
+
+
+class PointsRule(Base):
+    """HP configurables por torneo (category_id=null → valores globales por defecto)."""
+
+    __tablename__ = "points_rules"
+    __table_args__ = (
+        UniqueConstraint("category_id", "rule_key", name="uq_points_rules_category_key"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    category_id: Mapped[Optional[int]] = mapped_column(ForeignKey("categories.id"), nullable=True, index=True)
+    rule_key: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
+    label: Mapped[str] = mapped_column(String(100), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    hp_value: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=peru_now, nullable=False)
+
+    category: Mapped[Optional["Category"]] = relationship("Category")
+
+
+class PointBonusType(str, enum.Enum):
+    REFERRAL_REFERRER = "referral_referrer"
+    REFERRAL_REFERRED = "referral_referred"
+    GROUP_LEADER = "group_leader"
+
+
+class PointBonus(Base):
+    """Bonificaciones de HP (referidos, líder de grupo, etc.)."""
+
+    __tablename__ = "point_bonuses"
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id", "category_id", "bonus_type", "reference_key",
+            name="uq_point_bonuses_user_cat_type_ref",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    category_id: Mapped[int] = mapped_column(ForeignKey("categories.id"), nullable=False, index=True)
+    bonus_type: Mapped[PointBonusType] = mapped_column(Enum(PointBonusType), nullable=False, index=True)
+    hp: Mapped[int] = mapped_column(Integer, nullable=False)
+    reference_key: Mapped[str] = mapped_column(String(80), nullable=False)
+    notes: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=peru_now, nullable=False)
+
+    user: Mapped["User"] = relationship("User")
+    category: Mapped["Category"] = relationship("Category")
