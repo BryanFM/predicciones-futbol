@@ -121,6 +121,8 @@ class Match(Base):
     venue: Mapped[Optional[str]] = mapped_column(String(150), nullable=True)
     home_score: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     away_score: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    predictions_locked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    match_parked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     category: Mapped["Category"] = relationship("Category", back_populates="matches")
     predictions: Mapped[list["Prediction"]] = relationship(
@@ -138,19 +140,30 @@ class Match(Base):
         return self.home_score + self.away_score
 
     @property
+    def is_parked(self) -> bool:
+        return self.match_parked and not self.is_finished
+
+    @property
     def predictions_open(self) -> bool:
-        if self.is_finished:
+        if self.is_finished or self.match_parked or self.predictions_locked:
             return False
         cutoff = self.match_date - timedelta(minutes=PREDICTIONS_CLOSE_MINUTES)
         return peru_now() < cutoff
 
     @property
     def predictions_status(self) -> str:
-        if self.is_finished:
+        if self.is_finished or self.match_parked:
             return "finished"
+        if self.predictions_locked:
+            return "in_progress"
         if not self.predictions_open:
             return "closed"
         return "open"
+
+    @property
+    def match_started(self) -> bool:
+        """Partido en marcha o cerrado a predicciones (sin resultado oficial)."""
+        return not self.is_finished and not self.predictions_open
 
 
 class Prediction(Base):

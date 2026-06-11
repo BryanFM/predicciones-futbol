@@ -53,7 +53,13 @@ def build_home_page_context(
         filter_matches_by_date(matches_query, match_date) if match_date else (matches_query, None)
     )
     matches_query, selected_group = filter_matches_by_group(matches_query, group)
-    matches = matches_query.all()
+    matches = sorted(
+        matches_query.all(),
+        key=lambda m: (
+            2 if m.predictions_open else (0 if (m.is_finished or m.match_parked) else 1),
+            m.match_date,
+        ),
+    )
     available_dates = get_available_match_dates(db, selected)
     available_groups = get_available_groups(db, selected)
     group_summaries = (

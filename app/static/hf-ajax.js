@@ -62,7 +62,8 @@
   }
 
   function matchPredictionsOpen(dataset) {
-    if (!dataset || dataset.finished === '1') return false;
+    if (!dataset || dataset.finished === '1' || dataset.parked === '1') return false;
+    if (dataset.started === '1') return false;
     const cutoff = Number(dataset.cutoffMs);
     if (cutoff) return Date.now() < cutoff;
     return dataset.open === '1';
@@ -250,9 +251,35 @@
     if (payload.predictions_open !== undefined) {
       row.dataset.open = payload.predictions_open ? '1' : '0';
     }
-    row.classList.toggle('status-finished', !!payload.finished);
-    if (payload.finished) {
-      row.classList.remove('status-open', 'status-closed');
+    if (payload.predictions_locked !== undefined) {
+      row.dataset.started = payload.predictions_locked ? '1' : '0';
+    }
+    if (payload.match_parked !== undefined || payload.parked !== undefined) {
+      row.dataset.parked = (payload.match_parked || payload.parked) ? '1' : '0';
+    }
+    if (payload.predictions_status) {
+      row.classList.remove('status-open', 'status-closed', 'status-finished', 'status-in_progress');
+      row.classList.add(`status-${payload.predictions_status}`);
+    }
+    row.classList.toggle('status-finished', !!(payload.finished || payload.parked));
+    if (payload.finished || payload.parked) {
+      row.classList.remove('status-open', 'status-closed', 'status-in_progress');
+    }
+
+    if (payload.predictions_status) {
+      const badge = row.querySelector('.match-card-badge');
+      if (badge) {
+        badge.className = `match-card-badge match-card-badge--${payload.predictions_status}`;
+        if (payload.finished || payload.parked) badge.textContent = 'Finalizado';
+        else if (payload.predictions_open) badge.textContent = 'Abierto';
+        else badge.textContent = 'En juego';
+      }
+      if (window.HF?.syncStartButton) {
+        window.HF.syncStartButton(row, payload.predictions_open, payload.parked || payload.match_parked, payload.finished);
+      }
+      if (window.HF?.syncParkButton) {
+        window.HF.syncParkButton(row, payload.predictions_open, payload.parked || payload.match_parked, payload.finished);
+      }
     }
 
     const officialSlot = row.querySelector('.official-slot');
@@ -281,6 +308,16 @@
     }
   }
 
+  function updateMatchAdminRow(payload) {
+    updateOfficialRow(payload);
+    if (payload.reposition_carousel && window.hfMatchesCarousel?.repositionPending) {
+      window.hfMatchesCarousel.repositionPending();
+    }
+    if (window.HF?.syncModalAdminButtons) {
+      window.HF.syncModalAdminButtons(payload);
+    }
+  }
+
   window.HF = {
     toast,
     postForm,
@@ -291,6 +328,7 @@
     updateWagerRow,
     updateWagerBalance,
     updateOfficialRow,
+    updateMatchAdminRow,
     resultSymbol,
     matchPredictionsOpen,
     syncMatchOpenState,

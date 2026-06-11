@@ -266,7 +266,7 @@
       if (closedMsg) {
         closedMsg.textContent = isFinished
           ? '🔒 Predicciones cerradas — ya hay resultado oficial'
-          : '🔒 Predicciones cerradas — 5 min antes del inicio';
+          : '⚽ El partido ya inició';
         closedMsg.classList.remove('hidden');
       }
       els.title.textContent = hasOutcome(d) ? 'Tu 1X2' : '1X2 cerrado';
@@ -298,7 +298,7 @@
       if (saving || !window.HF) return;
 
       if (activeRow && !window.HF.matchPredictionsOpen(activeRow.dataset)) {
-        window.HF.toast('Las predicciones cerraron 5 minutos antes del inicio', 'error');
+        window.HF.toast('El partido ya inició', 'error');
         return;
       }
 

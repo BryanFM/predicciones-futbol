@@ -33,6 +33,8 @@
          data-has-wager="0"
          {% endif %}
          data-open="{{ '1' if match.predictions_open else '0' }}"
+         data-started="{{ '1' if match.predictions_locked else '0' }}"
+         data-parked="{{ '1' if match.match_parked else '0' }}"
          data-cutoff-ms="{{ predictions_cutoff_ms(match) }}"
          data-official-home="{{ match.home_score if match.home_score is not none else '' }}"
          data-official-away="{{ match.away_score if match.away_score is not none else '' }}"
@@ -49,9 +51,22 @@
       {% if match.group_name %}<span class="group-badge">Grupo {{ match.group_name }}</span>{% endif %}
       <span class="match-card-datetime">{{ match.match_date.strftime('%d/%m') }} · {{ match.match_date.strftime('%H:%M') }}</span>
     </div>
-    <span class="match-card-badge match-card-badge--{{ match.predictions_status }}">
-      {% if match.is_finished %}Finalizado{% elif match.predictions_open %}Abierto{% else %}Cerrado{% endif %}
-    </span>
+    <div class="match-card-header-actions">
+      <span class="match-card-badge match-card-badge--{{ match.predictions_status }}">
+        {% if match.is_finished or match.match_parked %}Finalizado{% elif match.predictions_open %}Abierto{% else %}En juego{% endif %}
+      </span>
+      {% if current_user and current_user.is_admin and not match.is_finished and not match.match_parked %}
+      {% if match.predictions_open %}
+      <button type="button" class="match-start-btn" data-match-start-btn data-match-id="{{ match.id }}"
+        title="Señalar que el partido inició"
+        aria-label="Señalar que el partido inició">🏁</button>
+      {% elif not match.predictions_open %}
+      <button type="button" class="match-park-btn" data-match-park-btn data-match-id="{{ match.id }}"
+        title="Dar el partido por finalizado"
+        aria-label="Dar el partido por finalizado">🔒</button>
+      {% endif %}
+      {% endif %}
+    </div>
   </div>
 
   <div class="v2-match-teams match-card-teams">

@@ -43,6 +43,8 @@
   const officialAway = modal.querySelector('#score-modal-official-away');
   const officialClear = modal.querySelector('#score-modal-official-clear');
   const officialSave = modal.querySelector('#score-modal-official-save');
+  const modalStartBtn = modal.querySelector('#score-modal-start-btn');
+  const modalParkBtn = modal.querySelector('#score-modal-park-btn');
 
   let iconsBound = false;
   let activeRow = null;
@@ -124,7 +126,18 @@
       adminWrap.classList.add('hidden');
     }
 
-    const isFinished = d.finished === '1';
+    if (auth.isAdmin && modalStartBtn) {
+      modalStartBtn.dataset.matchId = d.matchId;
+      const parked = d.parked === '1';
+      modalStartBtn.classList.toggle('hidden', d.finished === '1' || parked || d.open !== '1');
+    }
+    if (auth.isAdmin && modalParkBtn) {
+      modalParkBtn.dataset.matchId = d.matchId;
+      const parked = d.parked === '1';
+      modalParkBtn.classList.toggle('hidden', d.finished === '1' || parked || d.open === '1');
+    }
+
+    const isFinished = d.finished === '1' || d.parked === '1';
     const isOpen = d.open === '1' && !isFinished;
 
     if (formWrap) formWrap.classList.add('hidden');
@@ -147,9 +160,11 @@
         readonlyWrap.classList.remove('hidden');
       }
       if (closedMsg) {
-        closedMsg.textContent = isFinished
+        closedMsg.textContent = isFinished && d.finished === '1'
           ? '🔒 Predicciones cerradas — ya hay resultado oficial'
-          : '🔒 Predicciones cerradas — 5 min antes del inicio';
+          : isFinished
+            ? 'Partido dado por finalizado'
+            : '⚽ El partido ya inició';
         closedMsg.classList.remove('hidden');
       }
       els.title.textContent = hasPred ? 'Tu marcador' : 'Marcador cerrado';
@@ -184,7 +199,7 @@
       e.preventDefault();
       if (saving || !window.HF) return;
       if (activeRow && !window.HF.matchPredictionsOpen(activeRow.dataset)) {
-        window.HF.toast('Las predicciones cerraron 5 minutos antes del inicio', 'error');
+        window.HF.toast('El partido ya inició', 'error');
         return;
       }
       if (!els.homeScore || !els.awayScore) return;

@@ -18,7 +18,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from app.avatars import avatar_url as avatar_url_for_user, fetch_avatar
 from app.auth import get_current_user, oauth, require_admin, require_login, require_verified, upsert_user
 from app.database import Base, engine, get_db
-from app.hf_response import ajax_or_redirect, wants_ajax
+from app.hf_response import ajax_error, ajax_or_redirect, safe_back, wants_ajax
 from app.models import Category, ChampionPrediction, Match, Prediction, PredictionResult, PredictionType, User
 from app.rendering import render, render_error_page, static_url, templates
 
@@ -401,6 +401,14 @@ def _run_migrations():
                 );
                 """
             ))
+            conn.execute(text(
+                "ALTER TABLE matches ADD COLUMN IF NOT EXISTS predictions_locked BOOLEAN"
+                " NOT NULL DEFAULT FALSE;"
+            ))
+            conn.execute(text(
+                "ALTER TABLE matches ADD COLUMN IF NOT EXISTS match_parked BOOLEAN"
+                " NOT NULL DEFAULT FALSE;"
+            ))
         else:
             user_cols = {row[1] for row in conn.execute(text("PRAGMA table_info(users)"))}
             if "phone_number" not in user_cols:
@@ -446,6 +454,16 @@ def _run_migrations():
                 conn.execute(text("ALTER TABLE categories ADD COLUMN champion_team VARCHAR(100);"))
             if "champion_closes_at" not in cat_cols:
                 conn.execute(text("ALTER TABLE categories ADD COLUMN champion_closes_at DATETIME;"))
+
+            match_cols = {row[1] for row in conn.execute(text("PRAGMA table_info(matches)"))}
+            if "predictions_locked" not in match_cols:
+                conn.execute(text(
+                    "ALTER TABLE matches ADD COLUMN predictions_locked BOOLEAN NOT NULL DEFAULT 0;"
+                ))
+            if "match_parked" not in match_cols:
+                conn.execute(text(
+                    "ALTER TABLE matches ADD COLUMN match_parked BOOLEAN NOT NULL DEFAULT 0;"
+                ))
 
             conn.execute(text(
                 "CREATE UNIQUE INDEX IF NOT EXISTS ix_predictions_user_match_type"
@@ -907,6 +925,9 @@ def _official_score_payload(db: Session, match: Match, admin: User) -> dict:
         "away_score": match.away_score,
         "finished": match.is_finished,
         "predictions_open": match.predictions_open,
+        "predictions_locked": match.predictions_locked,
+        "match_parked": match.match_parked,
+        "predictions_status": match.predictions_status,
         "official_label": (
             f"{match.home_score} - {match.away_score}" if match.is_finished else None
         ),
@@ -998,6 +1019,100 @@ def delete_match(
     return RedirectResponse(f"/?category_id={category_id}", status_code=303)
 
 
+def _match_admin_payload(match: Match, *, reposition_carousel: bool = False) -> dict:
+    return {
+        "match_id": match.id,
+        "predictions_open": match.predictions_open,
+        "predictions_locked": match.predictions_locked,
+        "match_parked": match.match_parked,
+        "predictions_status": match.predictions_status,
+        "finished": match.is_finished,
+        "parked": match.match_parked,
+        "reposition_carousel": reposition_carousel,
+    }
+
+
+@app.post("/matches/{match_id}/match-start")
+def start_match(
+    request: Request,
+    match_id: int,
+    return_to: str = Form(""),
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    match = db.get(Match, match_id)
+    if not match:
+        raise HTTPException(404)
+    if match.is_finished:
+        return ajax_error(request, safe_back(return_to, f"/partidos/{match_id}"), "El partido ya finalizó")
+    if match.match_parked:
+        return ajax_error(request, safe_back(return_to, f"/partidos/{match_id}"), "El partido ya fue dado por finalizado")
+
+    match.predictions_locked = True
+    db.commit()
+    db.refresh(match)
+
+    back = safe_back(return_to, f"/partidos/{match_id}")
+    return ajax_or_redirect(
+        request,
+        f"{back}?msg=El+partido+ya+inició",
+        {**_match_admin_payload(match), "message": "El partido ya inició"},
+    )
+
+
+@app.post("/matches/{match_id}/match-park")
+def park_match(
+    request: Request,
+    match_id: int,
+    return_to: str = Form(""),
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    match = db.get(Match, match_id)
+    if not match:
+        raise HTTPException(404)
+    if match.is_finished:
+        return ajax_error(request, safe_back(return_to, f"/partidos/{match_id}"), "El partido ya finalizó")
+    if match.match_parked:
+        return ajax_error(request, safe_back(return_to, f"/partidos/{match_id}"), "El partido ya fue dado por finalizado")
+    if match.predictions_open:
+        return ajax_error(
+            request,
+            safe_back(return_to, f"/partidos/{match_id}"),
+            "Marca primero que el partido inició (🏁)",
+        )
+
+    match.predictions_locked = True
+    match.match_parked = True
+    db.commit()
+    db.refresh(match)
+
+    back = safe_back(return_to, f"/partidos/{match_id}")
+    return ajax_or_redirect(
+        request,
+        f"{back}?msg=Partido+dado+por+finalizado",
+        {**_match_admin_payload(match, reposition_carousel=True), "message": "Partido dado por finalizado"},
+    )
+
+
+@app.post("/matches/{match_id}/predictions-lock")
+def set_predictions_lock_legacy(
+    request: Request,
+    match_id: int,
+    locked: int = Form(1),
+    finalize: int = Form(0),
+    return_to: str = Form(""),
+    db: Session = Depends(get_db),
+    user: User = Depends(require_admin),
+):
+    """Compatibilidad con formularios antiguos."""
+    if finalize:
+        return park_match(request, match_id, return_to, db, user)
+    if locked:
+        return start_match(request, match_id, return_to, db, user)
+    return ajax_error(request, safe_back(return_to, f"/partidos/{match_id}"), "Acción no disponible")
+
+
 # ── Predictions (any logged-in user) ────────────────────────────────────────
 
 @app.post("/predictions")
@@ -1022,7 +1137,7 @@ def create_prediction(
     if not match.predictions_open:
         if match.is_finished:
             return ajax_error(request, url, "No puedes modificar predicciones: el partido ya tiene resultado oficial", status_code=403)
-        return ajax_error(request, url, "Las predicciones cerraron 5 minutos antes del inicio", status_code=403)
+        return ajax_error(request, url, "El partido ya inició", status_code=403)
     if predicted_home_score < 0 or predicted_away_score < 0:
         return ajax_error(request, url, "Marcador inválido", status_code=400)
 

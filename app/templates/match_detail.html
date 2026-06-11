@@ -18,10 +18,12 @@
     <span class="group-badge">Grupo {{ match.group_name or '—' }}</span>
     {% if match.predictions_status == 'open' %}
     <span class="status-badge status-open">Abierto</span>
-    {% elif match.predictions_status == 'closed' %}
-    <span class="status-badge status-closed">🔒 Cerrado</span>
-    {% else %}
+    {% elif match.is_finished or match.match_parked %}
     <span class="status-badge status-finished">Finalizado</span>
+    {% elif match.predictions_status == 'in_progress' %}
+    <span class="status-badge status-in-progress">En juego</span>
+    {% else %}
+    <span class="status-badge status-closed">En juego</span>
     {% endif %}
     <time>{{ format_pet(match.match_date) }}</time>
     {% if match.venue %}<span class="venue">{{ match.venue }}</span>{% endif %}
@@ -70,6 +72,19 @@
   <form method="post" action="/matches/{{ match.id }}/delete" class="admin-delete-form" onsubmit="return confirm('¿Eliminar partido?')">
     <button type="submit" class="btn btn-danger btn-sm">Eliminar partido</button>
   </form>
+  {% if not match.is_finished and not match.match_parked %}
+  {% if match.predictions_open %}
+  <form method="post" action="/matches/{{ match.id }}/match-start" class="admin-start-form">
+    <input type="hidden" name="return_to" value="/partidos/{{ match.id }}">
+    <button type="submit" class="btn btn-outline btn-sm">🏁 Partido inició</button>
+  </form>
+  {% elif not match.predictions_open %}
+  <form method="post" action="/matches/{{ match.id }}/match-park" class="admin-park-form">
+    <input type="hidden" name="return_to" value="/partidos/{{ match.id }}">
+    <button type="submit" class="btn btn-outline btn-sm">🔒 Finalizar partido</button>
+  </form>
+  {% endif %}
+  {% endif %}
 </section>
 {% endif %}
 
@@ -145,7 +160,7 @@
   {% elif match.is_finished %}
   <p class="predictions-closed">🔒 Predicciones cerradas — ya hay resultado oficial</p>
   {% elif not match.predictions_open %}
-  <p class="predictions-closed">🔒 Predicciones cerradas — 5 min antes del inicio</p>
+  <p class="predictions-closed">⚽ El partido ya inició</p>
   {% endif %}
 </section>
 

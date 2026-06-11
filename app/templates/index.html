@@ -265,6 +265,10 @@ y acumula Hamster puntos.{% endblock %}
         <button type="button" class="btn btn-danger btn-sm hidden" id="score-modal-official-clear">Quitar
           marcador</button>
       </form>
+      <button type="button" class="btn btn-outline btn-sm match-start-btn hidden" id="score-modal-start-btn"
+        data-match-start-btn title="Señalar que el partido inició" aria-label="Señalar que el partido inició">🏁 Partido inició</button>
+      <button type="button" class="btn btn-outline btn-sm match-park-btn hidden" id="score-modal-park-btn"
+        data-match-park-btn title="Dar el partido por finalizado" aria-label="Dar el partido por finalizado">🔒 Finalizar partido</button>
     </div>
     {% endif %}
 
@@ -403,4 +407,7 @@ y acumula Hamster puntos.{% endblock %}
 <script src="{{ static_url('groups-panel.js') }}" defer></script>
 <script src="{{ static_url('score-modal.js') }}" defer></script>
 <script src="{{ static_url('outcome-modal.js') }}" defer></script>
+{% if current_user and current_user.is_admin %}
+<script src="{{ static_url('match-lock.js') }}" defer></script>
+{% endif %}
 {% endblock %}
