@@ -1,5 +1,7 @@
 # Lanzamiento público — hamsterfijas.com
 
+> **Nota:** Esta guía es para cuando conectes el dominio. Mientras tanto, la app usa la URL de Render (`predicciones-futbol-tmyr.onrender.com`) como `SITE_URL`.
+
 Checklist y pasos para conectar el dominio **hamsterfijas.com** con el servicio en Render.
 
 ---

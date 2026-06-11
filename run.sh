@@ -22,7 +22,7 @@ PORT="${PORT:-8000}"
 HOST="${HOST:-127.0.0.1}"
 
 echo "→ Hamster Fijas — http://${HOST}:${PORT}"
-echo "  Producción: https://hamsterfijas.com"
+echo "  Producción: https://predicciones-futbol-tmyr.onrender.com/"
 echo "  DB: ${DATABASE_URL:-sqlite:///./predicciones.db}"
 echo ""
 
