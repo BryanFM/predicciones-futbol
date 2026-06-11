@@ -117,7 +117,10 @@ def leaderboard(
     category_id: Optional[int] = None,
     limit: int = 20,
 ) -> list[dict]:
-    users = db.query(User).filter(User.phone_verified.is_(True)).all()
+    users = db.query(User).filter(
+        User.phone_verified.is_(True),
+        User.is_admin.is_(False),
+    ).all()
     rows = []
     for user in users:
         pts = user_hamster_points(db, user.id, category_id)

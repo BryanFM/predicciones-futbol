@@ -1,5 +1,5 @@
 from app.models import PredictionResult, PredictionType
-from app.timezone import peru_now
+from app.timezone import peru_now, pet_timestamp_ms
 
 HAMSTER_GIF_SILBATO = "/static/hamster_silbato.gif"
 HAMSTER_GIF_HOY = "/static/hamster_hoy.gif"
@@ -25,14 +25,43 @@ def match_user_score(match, user):
     return None
 
 
+def match_user_outcome(match, user):
+    """Predicción 1X2 del usuario para un partido."""
+    if not user:
+        return None
+    for p in match.predictions:
+        if (
+            p.user_id is not None
+            and p.user_id == user.id
+            and p.type == PredictionType.OUTCOME
+        ):
+            return p
+    return None
+
+
+def outcome_pick_label(pick: str) -> str:
+    labels = {"1": "Gana local", "X": "Empate", "2": "Gana visitante"}
+    return labels.get(pick or "", pick or "—")
+
+
 def user_has_predictions(match, user) -> bool:
-    return match_user_score(match, user) is not None
+    return match_user_score(match, user) is not None or match_user_outcome(match, user) is not None
 
 
 def score_label(p) -> str:
     if p.predicted_home_score is None or p.predicted_away_score is None:
         return "—"
     return f"{p.predicted_home_score} - {p.predicted_away_score}"
+
+
+def predictions_cutoff_ms(match) -> int:
+    """Epoch ms (PET) en que cierran predicciones: 5 min antes del inicio."""
+    from datetime import timedelta
+
+    from app.models import PREDICTIONS_CLOSE_MINUTES
+
+    cutoff = match.match_date - timedelta(minutes=PREDICTIONS_CLOSE_MINUTES)
+    return pet_timestamp_ms(cutoff)
 
 
 def match_hamster_gif(match, user) -> str:

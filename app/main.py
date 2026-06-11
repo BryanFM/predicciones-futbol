@@ -442,7 +442,10 @@ def prediction_label(p: Prediction) -> str:
 
 from app.predictions_view import (
     match_hamster_gif,
+    match_user_outcome,
     match_user_score,
+    outcome_pick_label,
+    predictions_cutoff_ms,
     score_label,
     user_has_predictions,
     SHOW_MATCH_HAMSTER_GIFS,
@@ -455,7 +458,10 @@ templates.env.globals["static_url"] = static_url
 templates.env.globals["prediction_label"] = prediction_label
 templates.env.globals["format_pet"] = format_pet
 templates.env.globals["pet_timestamp_ms"] = pet_timestamp_ms
+templates.env.globals["predictions_cutoff_ms"] = predictions_cutoff_ms
 templates.env.globals["match_user_score"] = match_user_score
+templates.env.globals["match_user_outcome"] = match_user_outcome
+templates.env.globals["outcome_pick_label"] = outcome_pick_label
 templates.env.globals["match_hamster_gif"] = match_hamster_gif
 templates.env.globals["SHOW_MATCH_HAMSTER_GIFS"] = SHOW_MATCH_HAMSTER_GIFS
 templates.env.globals["user_has_predictions"] = user_has_predictions
@@ -510,14 +516,9 @@ def _home_url(
     match_date: Optional[str] = None,
     group: Optional[str] = None,
 ) -> str:
-    params = []
-    if category_id:
-        params.append(f"category_id={category_id}")
-    if match_date:
-        params.append(f"match_date={match_date}")
-    if group:
-        params.append(f"group={group}")
-    return "/?" + "&".join(params) if params else "/"
+    from app.hf_response import home_url
+
+    return home_url(category_id, match_date, group)
 
 
 templates.env.globals["home_url"] = _home_url
@@ -645,6 +646,31 @@ def home(
     if matches:
         match_outcome_stats = get_match_outcome_stats_batch(db, [m.id for m in matches])
 
+    user_wagers_by_match: dict[int, object] = {}
+    wager_balance_info = None
+    if current_user and current_user.phone_verified and selected:
+        from app.models import PointWager
+        from app.wagers import MAX_STAKE, MIN_STAKE, WAGER_PICKS, wager_balance
+
+        match_ids = [m.id for m in matches]
+        if match_ids:
+            for w in (
+                db.query(PointWager)
+                .filter(PointWager.user_id == current_user.id, PointWager.match_id.in_(match_ids))
+                .order_by(PointWager.created_at.desc())
+                .all()
+            ):
+                user_wagers_by_match.setdefault(w.match_id, w)
+        wager_balance_info = wager_balance(db, current_user.id, selected)
+        wager_ctx = {
+            "picks": WAGER_PICKS,
+            "min_stake": MIN_STAKE,
+            "max_stake": MAX_STAKE,
+            "balance": wager_balance_info,
+        }
+    else:
+        wager_ctx = None
+
     return render(
         "index.html",
         {
@@ -666,6 +692,8 @@ def home(
             "match_outcome_stats": match_outcome_stats,
             "countdown_ms": countdown_ms,
             "countdown_label": countdown_label,
+            "user_wagers_by_match": user_wagers_by_match,
+            "wager_ctx": wager_ctx,
         },
         request=request,
         db=db,
@@ -975,12 +1003,16 @@ def create_prediction(
     match = db.get(Match, match_id)
     if not match:
         raise HTTPException(404)
+    cat_id = return_category_id or match.category_id
+    url = _home_url(cat_id, return_match_date.strip() or None, return_group.strip() or None)
+    from app.hf_response import ajax_error
+
     if not match.predictions_open:
         if match.is_finished:
-            raise HTTPException(403, "No puedes modificar predicciones: el partido ya tiene resultado oficial")
-        raise HTTPException(403, "Las predicciones cerraron 5 minutos antes del inicio")
+            return ajax_error(request, url, "No puedes modificar predicciones: el partido ya tiene resultado oficial", status_code=403)
+        return ajax_error(request, url, "Las predicciones cerraron 5 minutos antes del inicio", status_code=403)
     if predicted_home_score < 0 or predicted_away_score < 0:
-        raise HTTPException(400, "Marcador inválido")
+        return ajax_error(request, url, "Marcador inválido", status_code=400)
 
     existing = (
         db.query(Prediction)
@@ -1019,8 +1051,6 @@ def create_prediction(
 
     db.commit()
 
-    cat_id = return_category_id or match.category_id
-    url = _home_url(cat_id, return_match_date.strip() or None, return_group.strip() or None)
     from app.points import user_hamster_points
 
     return ajax_or_redirect(
@@ -1061,22 +1091,29 @@ def save_outcome_prediction(
     request: Request,
     match_id: int = Form(...),
     outcome_pick: str = Form(...),
+    return_category_id: Optional[int] = Form(None),
+    return_match_date: str = Form(""),
+    return_group: str = Form(""),
+    return_to: str = Form(""),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_verified),
 ):
-    from app.flash import flash
+    from app.hf_response import ajax_error, ajax_or_redirect, safe_back
+    from app.services import evaluate_prediction
 
     match = db.get(Match, match_id)
     if not match:
         raise HTTPException(404)
-    back = f"/partidos/{match_id}"
+    cat_id = return_category_id or match.category_id
+    back = safe_back(
+        return_to,
+        _home_url(cat_id, return_match_date.strip() or None, return_group.strip() or None),
+    )
     pick = outcome_pick.strip().upper()
     if pick not in OUTCOME_PICK_LABELS:
-        flash(request, error="Elige un resultado válido: local, empate o visitante.")
-        return RedirectResponse(back, status_code=303)
+        return ajax_error(request, back, "Elige un resultado válido: local, empate o visitante.")
     if not match.predictions_open:
-        flash(request, error="Las predicciones cerraron para este partido.")
-        return RedirectResponse(back, status_code=303)
+        return ajax_error(request, back, "Las predicciones cerraron para este partido.")
 
     existing = (
         db.query(Prediction)
@@ -1090,20 +1127,44 @@ def save_outcome_prediction(
     if existing:
         existing.outcome_pick = pick
         existing.result = PredictionResult.PENDING
-        verb = "actualizada"
+        prediction = existing
+        updated = True
     else:
-        db.add(
-            Prediction(
-                match_id=match_id,
-                user_id=current_user.id,
-                type=PredictionType.OUTCOME,
-                outcome_pick=pick,
-            )
+        prediction = Prediction(
+            match_id=match_id,
+            user_id=current_user.id,
+            type=PredictionType.OUTCOME,
+            outcome_pick=pick,
         )
-        verb = "registrada"
+        db.add(prediction)
+        updated = False
+
+    if match.is_finished:
+        prediction.result = evaluate_prediction(prediction, match)
+
     db.commit()
-    flash(request, msg=f"Predicción de resultado {verb}: {OUTCOME_PICK_LABELS[pick]}.")
-    return RedirectResponse(back, status_code=303)
+    db.refresh(prediction)
+
+    from app.points import user_hamster_points
+
+    label = OUTCOME_PICK_LABELS[pick]
+    if pick == "1":
+        label = f"Gana {match.home_team}"
+    elif pick == "2":
+        label = f"Gana {match.away_team}"
+
+    return ajax_or_redirect(
+        request,
+        back,
+        {
+            "match_id": match_id,
+            "outcome_pick": pick,
+            "outcome_label": label,
+            "result": prediction.result.value,
+            "updated": updated,
+            "user_points": user_hamster_points(db, current_user.id, cat_id),
+        },
+    )
 
 
 @app.post("/predictions/{prediction_id}/delete")

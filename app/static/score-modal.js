@@ -1,34 +1,34 @@
 (function () {
-  const modal = document.getElementById('prediction-modal');
+  const modal = document.getElementById('score-modal');
   if (!modal) return;
 
   const backdrop = modal.querySelector('.modal-backdrop');
   const closeBtn = modal.querySelector('.modal-close');
-  const formWrap = modal.querySelector('.modal-form-wrap');
-  const readonlyWrap = modal.querySelector('#modal-readonly-wrap');
-  const readonlyScore = modal.querySelector('#modal-readonly-score');
-  const editHint = modal.querySelector('#modal-edit-hint');
-  const closedMsg = modal.querySelector('.modal-closed-msg');
-  const authMsg = modal.querySelector('.modal-auth-msg');
+  const formWrap = modal.querySelector('#score-modal-form-wrap');
+  const readonlyWrap = modal.querySelector('#score-modal-readonly-wrap');
+  const readonlyScore = modal.querySelector('#score-modal-readonly-score');
+  const editHint = modal.querySelector('#score-modal-edit-hint');
+  const closedMsg = modal.querySelector('#score-modal-closed');
+  const authMsg = modal.querySelector('#score-modal-auth');
   const form = document.getElementById('prediction-form');
 
   const els = {
-    homeName: modal.querySelector('#modal-home-name'),
-    awayName: modal.querySelector('#modal-away-name'),
-    homeFlag: modal.querySelector('#modal-home-flag'),
-    awayFlag: modal.querySelector('#modal-away-flag'),
-    homeBadge: modal.querySelector('#modal-home-badge'),
-    awayBadge: modal.querySelector('#modal-away-badge'),
-    meta: modal.querySelector('#modal-meta'),
-    matchId: modal.querySelector('#modal-match-id'),
-    homeScore: modal.querySelector('#modal-home-score'),
-    awayScore: modal.querySelector('#modal-away-score'),
-    homeIcons: modal.querySelector('#modal-home-icons'),
-    awayIcons: modal.querySelector('#modal-away-icons'),
-    homeLabel: modal.querySelector('#modal-home-label-text'),
-    awayLabel: modal.querySelector('#modal-away-label-text'),
-    title: modal.querySelector('#modal-title'),
-    submit: modal.querySelector('#modal-submit'),
+    homeName: modal.querySelector('#score-modal-home-name'),
+    awayName: modal.querySelector('#score-modal-away-name'),
+    homeFlag: modal.querySelector('#score-modal-home-flag'),
+    awayFlag: modal.querySelector('#score-modal-away-flag'),
+    homeBadge: modal.querySelector('#score-modal-home-badge'),
+    awayBadge: modal.querySelector('#score-modal-away-badge'),
+    meta: modal.querySelector('#score-modal-meta'),
+    matchId: modal.querySelector('#score-modal-match-id'),
+    homeScore: modal.querySelector('#score-modal-home-score'),
+    awayScore: modal.querySelector('#score-modal-away-score'),
+    homeIcons: modal.querySelector('#score-modal-home-icons'),
+    awayIcons: modal.querySelector('#score-modal-away-icons'),
+    homeLabel: modal.querySelector('#score-modal-home-label-text'),
+    awayLabel: modal.querySelector('#score-modal-away-label-text'),
+    title: modal.querySelector('#score-modal-title'),
+    submit: modal.querySelector('#score-modal-submit'),
   };
 
   const auth = {
@@ -37,16 +37,12 @@
     isAdmin: modal.dataset.isAdmin === '1',
   };
 
-  const adminWrap = modal.querySelector('#modal-admin-wrap');
+  const adminWrap = modal.querySelector('#score-modal-admin-wrap');
   const officialForm = modal.querySelector('#official-score-form');
-  const officialHome = modal.querySelector('#modal-official-home');
-  const officialAway = modal.querySelector('#modal-official-away');
-  const officialClear = modal.querySelector('#modal-official-clear');
-  const officialSave = modal.querySelector('#modal-official-save');
-  const communityStats = modal.querySelector('#modal-community-stats');
-  const communityBar = modal.querySelector('#modal-outcome-bar');
-  const communityLabels = modal.querySelector('#modal-outcome-labels');
-  const communityTotal = modal.querySelector('#modal-community-total');
+  const officialHome = modal.querySelector('#score-modal-official-home');
+  const officialAway = modal.querySelector('#score-modal-official-away');
+  const officialClear = modal.querySelector('#score-modal-official-clear');
+  const officialSave = modal.querySelector('#score-modal-official-save');
 
   let iconsBound = false;
   let activeRow = null;
@@ -75,40 +71,28 @@
     window.HFGoalIcons.renderGoalIcons(els.awayIcons, els.awayScore.value);
   }
 
-  function renderCommunityStats(d) {
-    if (!communityStats) return;
-    const total = Number(d.pctTotal || 0);
-    if (!total) {
-      communityStats.classList.add('hidden');
-      return;
+  function setFlag(img, badge, url, name) {
+    if (url) {
+      img.src = url;
+      img.alt = name;
+      img.classList.remove('hidden');
+      badge.classList.add('hidden');
+    } else {
+      img.classList.add('hidden');
+      badge.textContent = name.slice(0, 2).toUpperCase();
+      badge.classList.remove('hidden');
     }
-    const home = Number(d.pctHome || 0);
-    const draw = Number(d.pctDraw || 0);
-    const away = Number(d.pctAway || 0);
+  }
 
-    if (communityBar) {
-      communityBar.innerHTML = [
-        home ? `<span class="outcome-seg home" style="width:${home}%"></span>` : '',
-        draw ? `<span class="outcome-seg draw" style="width:${draw}%"></span>` : '',
-        away ? `<span class="outcome-seg away" style="width:${away}%"></span>` : '',
-      ].join('');
-    }
-    if (communityLabels) {
-      communityLabels.innerHTML = [
-        `<span class="outcome-label home" title="Gana local">L ${home}%</span>`,
-        `<span class="outcome-label draw" title="Empate">E ${draw}%</span>`,
-        `<span class="outcome-label away" title="Gana visitante">V ${away}%</span>`,
-      ].join('');
-    }
-    if (communityTotal) {
-      communityTotal.textContent = `${total} predicción${total === 1 ? '' : 'es'}`;
-    }
-    communityStats.classList.remove('hidden');
+  function syncBodyScroll() {
+    const outcomeOpen = document.getElementById('outcome-modal')?.classList.contains('open');
+    document.body.classList.toggle('modal-open', modal.classList.contains('open') || !!outcomeOpen);
   }
 
   function openModal(row) {
     activeRow = row;
     const d = row.dataset;
+    if (window.HF?.syncMatchOpenState) window.HF.syncMatchOpenState(d);
     if (!els.homeName) return;
 
     const canEdit = auth.loggedIn && auth.verified;
@@ -127,22 +111,8 @@
     if (els.homeLabel) els.homeLabel.textContent = d.home;
     if (els.awayLabel) els.awayLabel.textContent = d.away;
     els.meta.textContent = d.meta || '';
-
-    const setFlag = (img, badge, url, name) => {
-      if (url) {
-        img.src = url;
-        img.alt = name;
-        img.classList.remove('hidden');
-        badge.classList.add('hidden');
-      } else {
-        img.classList.add('hidden');
-        badge.textContent = name.slice(0, 2).toUpperCase();
-        badge.classList.remove('hidden');
-      }
-    };
     setFlag(els.homeFlag, els.homeBadge, d.homeFlag || '', d.home);
     setFlag(els.awayFlag, els.awayBadge, d.awayFlag || '', d.away);
-    renderCommunityStats(d);
 
     if (auth.isAdmin && adminWrap) {
       adminWrap.classList.remove('hidden');
@@ -166,11 +136,11 @@
     if (!auth.loggedIn) {
       authMsg.innerHTML = '<a href="/auth/login">Inicia sesión</a> para registrar predicciones.';
       authMsg.classList.remove('hidden');
-      els.title.textContent = 'Predicciones';
+      els.title.textContent = 'Marcador';
     } else if (!auth.verified) {
       authMsg.innerHTML = '<a href="/verificar-telefono">Verifica tu celular</a> para participar.';
       authMsg.classList.remove('hidden');
-      els.title.textContent = hasPred ? 'Tu marcador' : 'Predicciones';
+      els.title.textContent = hasPred ? 'Tu marcador' : 'Marcador';
     } else if (!isOpen) {
       if (hasPred && readonlyWrap && readonlyScore) {
         readonlyScore.textContent = predictionLabel(d);
@@ -182,7 +152,7 @@
           : '🔒 Predicciones cerradas — 5 min antes del inicio';
         closedMsg.classList.remove('hidden');
       }
-      els.title.textContent = hasPred ? 'Tu marcador' : 'Predicciones cerradas';
+      els.title.textContent = hasPred ? 'Tu marcador' : 'Marcador cerrado';
     } else if (formWrap) {
       formWrap.classList.remove('hidden');
       if (editHint) editHint.classList.toggle('hidden', !hasPred);
@@ -195,7 +165,7 @@
 
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
-    document.body.classList.add('modal-open');
+    syncBodyScroll();
     if (isOpen && auth.loggedIn && auth.verified && els.homeScore) {
       els.homeScore.focus();
       els.homeScore.select();
@@ -205,7 +175,7 @@
   function closeModal() {
     modal.classList.remove('open');
     modal.setAttribute('aria-hidden', 'true');
-    document.body.classList.remove('modal-open');
+    syncBodyScroll();
     activeRow = null;
   }
 
@@ -213,6 +183,10 @@
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (saving || !window.HF) return;
+      if (activeRow && !window.HF.matchPredictionsOpen(activeRow.dataset)) {
+        window.HF.toast('Las predicciones cerraron 5 minutos antes del inicio', 'error');
+        return;
+      }
       if (!els.homeScore || !els.awayScore) return;
 
       saving = true;
@@ -306,16 +280,23 @@
     });
   }
 
-  document.addEventListener('click', (e) => {
-    const row = e.target.closest('.match-row[data-match-id]');
-    if (row) openModal(row);
-  });
+  function handleOpenClick(e) {
+    const trigger = e.target.closest('[data-open-modal="score"]');
+    if (!trigger) return;
+    const row = trigger.closest('.match-row[data-match-id]');
+    if (!row) return;
+    e.preventDefault();
+    e.stopPropagation();
+    openModal(row);
+  }
 
+  document.addEventListener('click', handleOpenClick);
   document.addEventListener('keydown', (e) => {
-    const row = e.target.closest('.match-row[data-match-id]');
-    if (row && (e.key === 'Enter' || e.key === ' ')) {
+    const trigger = e.target.closest('[data-open-modal="score"]');
+    if (trigger && (e.key === 'Enter' || e.key === ' ')) {
       e.preventDefault();
-      openModal(row);
+      const row = trigger.closest('.match-row[data-match-id]');
+      if (row) openModal(row);
     }
   });
 
@@ -324,4 +305,6 @@
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && modal.classList.contains('open')) closeModal();
   });
+
+  window.HFScoreModal = { open: openModal, close: closeModal };
 })();

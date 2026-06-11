@@ -9,8 +9,8 @@ from sqlalchemy.orm import Session
 
 from app.auth import require_verified
 from app.database import get_db
-from app.flash import flash
-from app.models import Category, Match, User, WagerStatus
+from app.hf_response import ajax_error, ajax_or_redirect, safe_back
+from app.models import Category, Match, PointWager, User, WagerStatus
 from app.points import points_history, user_hamster_points
 from app.rendering import render
 from app.timezone import peru_now
@@ -83,13 +83,6 @@ def wagers_page(
     )
 
 
-def _safe_back(return_to: str, fallback: str) -> str:
-    """Solo rutas internas (evita open redirect)."""
-    if return_to.startswith("/") and not return_to.startswith("//"):
-        return return_to
-    return fallback
-
-
 @router.post("/apuestas")
 def create_wager(
     request: Request,
@@ -98,28 +91,44 @@ def create_wager(
     stake: int = Form(...),
     category_id: Optional[int] = Form(None),
     return_to: str = Form(""),
+    return_category_id: Optional[int] = Form(None),
+    return_match_date: str = Form(""),
+    return_group: str = Form(""),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_verified),
 ):
+    from app.hf_response import home_url
+
     match = db.get(Match, match_id)
     if not match:
         raise HTTPException(404)
 
-    back = _safe_back(return_to, f"/apuestas?category_id={category_id or match.category_id}")
+    cat_id = category_id or return_category_id or match.category_id
+    back = safe_back(
+        return_to,
+        home_url(cat_id, return_match_date.strip() or None, return_group.strip() or None),
+    )
     try:
         wager = place_wager(db, current_user, match, pick.strip().upper(), stake)
     except ValueError as exc:
-        flash(request, error=str(exc))
-        return RedirectResponse(back, status_code=303)
+        return ajax_error(request, back, str(exc))
 
-    flash(
+    from app.points import user_hamster_points
+
+    return ajax_or_redirect(
         request,
-        msg=(
-            f"Apuesta registrada: {wager.stake_hp} HP a «{WAGER_PICKS[wager.pick]}» en "
-            f"{match.home_team} vs {match.away_team}. Si aciertas ganas {wager.stake_hp} HP extra."
-        ),
+        back,
+        {
+            "match_id": match_id,
+            "wager_id": wager.id,
+            "pick": wager.pick,
+            "pick_label": WAGER_PICKS[wager.pick],
+            "stake_hp": wager.stake_hp,
+            "status": wager.status.value,
+            "user_points": user_hamster_points(db, current_user.id, cat_id),
+            "wager_balance": wager_balance(db, current_user.id, cat_id),
+        },
     )
-    return RedirectResponse(back, status_code=303)
 
 
 @router.post("/apuestas/{wager_id}/cancelar")
@@ -128,17 +137,42 @@ def remove_wager(
     wager_id: int,
     category_id: Optional[int] = Form(None),
     return_to: str = Form(""),
+    return_category_id: Optional[int] = Form(None),
+    return_match_date: str = Form(""),
+    return_group: str = Form(""),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_verified),
 ):
-    back = _safe_back(return_to, f"/apuestas{f'?category_id={category_id}' if category_id else ''}")
+    from app.hf_response import home_url
+
+    cat_id = category_id or return_category_id
+    back = safe_back(
+        return_to,
+        home_url(cat_id, return_match_date.strip() or None, return_group.strip() or None)
+        if cat_id
+        else "/apuestas",
+    )
     try:
+        wager = db.get(PointWager, wager_id)
+        if not wager or wager.user_id != current_user.id:
+            raise ValueError("Apuesta no encontrada.")
+        match_id = wager.match_id
         cancel_wager(db, current_user, wager_id)
     except ValueError as exc:
-        flash(request, error=str(exc))
-        return RedirectResponse(back, status_code=303)
-    flash(request, msg="Apuesta retirada: tus HP vuelven a estar disponibles.")
-    return RedirectResponse(back, status_code=303)
+        return ajax_error(request, back, str(exc))
+
+    from app.points import user_hamster_points
+
+    return ajax_or_redirect(
+        request,
+        back,
+        {
+            "match_id": match_id,
+            "wager_cancelled": True,
+            "user_points": user_hamster_points(db, current_user.id, cat_id),
+            "wager_balance": wager_balance(db, current_user.id, cat_id),
+        },
+    )
 
 
 @router.get("/mis-puntos", response_class=HTMLResponse)

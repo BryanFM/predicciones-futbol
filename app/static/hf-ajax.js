@@ -61,6 +61,20 @@
     return '⏳';
   }
 
+  function matchPredictionsOpen(dataset) {
+    if (!dataset || dataset.finished === '1') return false;
+    const cutoff = Number(dataset.cutoffMs);
+    if (cutoff) return Date.now() < cutoff;
+    return dataset.open === '1';
+  }
+
+  function syncMatchOpenState(dataset) {
+    if (!dataset) return false;
+    const open = matchPredictionsOpen(dataset);
+    dataset.open = open ? '1' : '0';
+    return open;
+  }
+
   function teamFlagMarkup(team, flagUrl) {
     if (flagUrl) {
       return `<img data-src="${flagUrl}" alt="" class="team-flag sm" width="28" height="21">`;
@@ -118,6 +132,7 @@
     const row = document.querySelector(`.match-row[data-match-id="${payload.match_id}"]`);
     if (!row) return;
 
+    row.dataset.hasPred = '1';
     row.dataset.predHome = String(payload.predicted_home_score);
     row.dataset.predAway = String(payload.predicted_away_score);
     row.classList.remove('match-row-empty');
@@ -135,6 +150,93 @@
       statusSlot.classList.add('filled');
       const val = statusSlot.querySelector('.pick-value');
       if (val) val.textContent = resultSymbol(payload.result);
+    }
+  }
+
+  function updateOutcomeRow(payload) {
+    const row = document.querySelector(`.match-row[data-match-id="${payload.match_id}"]`);
+    if (!row) return;
+
+    row.dataset.hasOutcome = '1';
+    row.dataset.outcomePick = payload.outcome_pick;
+    row.dataset.outcomeResult = payload.result;
+    row.classList.remove('match-row-empty');
+
+    const outcomeSlot = row.querySelector('.outcome-slot');
+    if (outcomeSlot) {
+      outcomeSlot.classList.remove('empty');
+      outcomeSlot.classList.add('filled');
+      const val = outcomeSlot.querySelector('.pick-value');
+      if (val) {
+        let text = payload.outcome_pick;
+        if (row.dataset.hasWager === '1' && row.dataset.wagerStatus === 'pending') {
+          text += ` · ${row.dataset.wagerStake}HP`;
+        }
+        val.textContent = text;
+      }
+    }
+
+    const statusSlot = row.querySelector('.status-slot');
+    if (statusSlot && row.dataset.hasPred !== '1') {
+      statusSlot.classList.remove('empty');
+      statusSlot.classList.add('filled');
+      const val = statusSlot.querySelector('.pick-value');
+      if (val) val.textContent = resultSymbol(payload.result);
+    }
+  }
+
+  function updateWagerRow(payload) {
+    const row = document.querySelector(`.match-row[data-match-id="${payload.match_id}"]`);
+    if (!row) return;
+
+    if (payload.wager_cancelled) {
+      row.dataset.hasWager = '0';
+      delete row.dataset.wagerId;
+      delete row.dataset.wagerPick;
+      delete row.dataset.wagerStake;
+      delete row.dataset.wagerStatus;
+      const outcomeSlot = row.querySelector('.outcome-slot');
+      if (outcomeSlot && row.dataset.hasOutcome === '1') {
+        const val = outcomeSlot.querySelector('.pick-value');
+        if (val) val.textContent = row.dataset.outcomePick;
+      }
+      return;
+    }
+
+    row.dataset.hasWager = '1';
+    row.dataset.wagerId = String(payload.wager_id);
+    row.dataset.wagerPick = payload.pick;
+    row.dataset.wagerStake = String(payload.stake_hp);
+    row.dataset.wagerStatus = payload.status;
+
+    const outcomeSlot = row.querySelector('.outcome-slot');
+    if (outcomeSlot) {
+      outcomeSlot.classList.remove('empty');
+      outcomeSlot.classList.add('filled');
+      const val = outcomeSlot.querySelector('.pick-value');
+      if (val) {
+        const pick = row.dataset.outcomePick || payload.pick;
+        val.textContent = payload.status === 'pending' ? `${pick} · ${payload.stake_hp}HP` : pick;
+      }
+    }
+  }
+
+  function updateWagerBalance(modal, wagerBalance) {
+    if (!modal || !wagerBalance) return;
+    modal.dataset.wagerAvailable = String(wagerBalance.available ?? 0);
+    const hint = modal.querySelector('#outcome-modal-wager-balance-hint');
+    if (hint) {
+      const min = Number(modal.dataset.wagerMin || 1);
+      const max = Math.min(
+        Number(wagerBalance.available ?? 0),
+        Number(modal.dataset.wagerMax || (wagerBalance.available ?? 0))
+      );
+      hint.innerHTML = `Tienes <strong>${wagerBalance.available ?? 0} HP disponibles</strong>. Si aciertas, duplicas lo apostado.`;
+      const stakeInput = modal.querySelector('#outcome-modal-wager-stake');
+      if (stakeInput) {
+        stakeInput.min = String(min);
+        stakeInput.max = String(Math.max(max, 0));
+      }
     }
   }
 
@@ -185,7 +287,12 @@
     updateNavPoints,
     updateChampionStats,
     updateMatchRow,
+    updateOutcomeRow,
+    updateWagerRow,
+    updateWagerBalance,
     updateOfficialRow,
     resultSymbol,
+    matchPredictionsOpen,
+    syncMatchOpenState,
   };
 })();
