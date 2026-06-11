@@ -260,25 +260,41 @@ async def hf_unhandled_exception_handler(request: Request, exc: Exception):
 
 @app.on_event("startup")
 def on_startup():
+    import logging
+    import threading
+
     from app.yape_policy import yape_payments_enabled
 
     templates.env.globals["YAPE_PAYMENTS_ENABLED"] = yape_payments_enabled()
     templates.env.globals["SORTEO_POPUP_ENABLED"] = sorteo_popup_enabled()
     _validate_oauth_config()
-    Base.metadata.create_all(bind=engine)
-    _run_migrations()
-    db = next(get_db())
-    try:
-        from app.services import seed_database
-        from app.points_rules import seed_default_rules
-        from app.referrals import ensure_referral_code
+    logging.getLogger("uvicorn.error").info("Arrancando bootstrap de BD en segundo plano…")
+    threading.Thread(target=_database_bootstrap, daemon=True, name="db-bootstrap").start()
 
-        seed_database(db)
-        seed_default_rules(db)
-        for user in db.query(User).filter(User.referral_code.is_(None)).all():
-            ensure_referral_code(db, user)
-    finally:
-        db.close()
+
+def _database_bootstrap() -> None:
+    import logging
+
+    log = logging.getLogger("uvicorn.error")
+    try:
+        log.info("Bootstrap BD: tablas, migraciones y seed…")
+        Base.metadata.create_all(bind=engine)
+        _run_migrations()
+        db = next(get_db())
+        try:
+            from app.services import seed_database
+            from app.points_rules import seed_default_rules
+            from app.referrals import ensure_referral_code
+
+            seed_database(db)
+            seed_default_rules(db)
+            for user in db.query(User).filter(User.referral_code.is_(None)).all():
+                ensure_referral_code(db, user)
+        finally:
+            db.close()
+        log.info("Bootstrap BD completado.")
+    except Exception:
+        log.exception("Bootstrap BD falló")
 
 
 def _validate_oauth_config() -> None:

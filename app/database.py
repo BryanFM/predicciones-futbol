@@ -9,8 +9,16 @@ _url = os.environ.get("DATABASE_URL", "sqlite:///./predicciones.db")
 if _url.startswith("postgres://"):
     _url = _url.replace("postgres://", "postgresql://", 1)
 
-_kwargs = {"check_same_thread": False} if _url.startswith("sqlite") else {}
-engine = create_engine(_url, connect_args=_kwargs)
+_connect_args: dict = {}
+_engine_kwargs: dict = {}
+if _url.startswith("sqlite"):
+    _connect_args["check_same_thread"] = False
+else:
+    _connect_args["connect_timeout"] = 10
+    _engine_kwargs["pool_pre_ping"] = True
+    _engine_kwargs["pool_recycle"] = 300
+
+engine = create_engine(_url, connect_args=_connect_args, **_engine_kwargs)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
