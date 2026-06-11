@@ -299,3 +299,13 @@ class PointBonus(Base):
 
     user: Mapped["User"] = relationship("User")
     category: Mapped["Category"] = relationship("Category")
+
+
+class PlatformSetting(Base):
+    """Configuración global de la plataforma (p. ej. máximo nivel de premios alcanzado)."""
+
+    __tablename__ = "platform_settings"
+
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    value: Mapped[str] = mapped_column(String(255), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=peru_now, nullable=False)

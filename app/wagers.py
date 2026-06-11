@@ -16,7 +16,7 @@ WAGER_PICKS = {
 }
 
 MIN_STAKE = 1
-MAX_STAKE = 9999
+MAX_STAKE = 50
 
 
 def match_outcome(match: Match) -> Optional[str]:

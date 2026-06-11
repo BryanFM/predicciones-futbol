@@ -227,6 +227,7 @@
         <input type="hidden" name="return_to" value="/partidos/{{ match.id }}">
         <p class="wager-balance-hint">
           Tienes <strong>{{ wager_ctx.balance.available }} HP disponibles</strong>.
+          Apuesta entre {{ wager_ctx.min_stake }} y {{ [wager_ctx.balance.available, wager_ctx.max_stake]|min }} HP.
           Si aciertas el resultado, duplicas lo apostado; si fallas, lo pierdes.
         </p>
         <div class="wager-pick-options" role="radiogroup" aria-label="Resultado del partido">

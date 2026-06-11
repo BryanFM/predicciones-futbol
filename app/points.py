@@ -24,6 +24,16 @@ SCORE_HIT_POINTS = 5
 CHAMPION_HIT_POINTS = 50
 
 
+def competitive_hamster_points(breakdown: dict) -> int:
+    """HP que cuentan para el podio: marcador exacto, campeón y bonos de mérito predictivo."""
+    return (
+        breakdown["score_points"]
+        + breakdown["champion_points"]
+        + breakdown["bonus_points"]
+        - breakdown["referral_points"]
+    )
+
+
 def user_hamster_points(
     db: Session,
     user_id: int,
@@ -90,7 +100,7 @@ def user_hamster_points(
 
     total = score_pts + outcome_pts + champion_pts + purchased_pts + bonus_pts + wager_net
 
-    return {
+    breakdown = {
         "score_hits": score_hits,
         "outcome_hits": outcome_hits,
         "champion_hits": champion_hits,
@@ -110,6 +120,8 @@ def user_hamster_points(
         "champion_hp_unit": champion_hp_unit,
         "total": total,
     }
+    breakdown["competitive"] = competitive_hamster_points(breakdown)
+    return breakdown
 
 
 def leaderboard(
@@ -124,7 +136,7 @@ def leaderboard(
     rows = []
     for user in users:
         pts = user_hamster_points(db, user.id, category_id)
-        if pts["total"] > 0:
+        if pts["competitive"] > 0:
             rows.append({"user": user, **pts})
             continue
         if not category_id:
@@ -151,7 +163,7 @@ def leaderboard(
         if pending_scores or pending_champ:
             rows.append({"user": user, **pts})
 
-    rows.sort(key=lambda r: r["total"], reverse=True)
+    rows.sort(key=lambda r: (r["competitive"], r["total"]), reverse=True)
     return rows[:limit]
 
 

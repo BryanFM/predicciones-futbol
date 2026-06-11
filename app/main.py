@@ -370,6 +370,15 @@ def _run_migrations():
                 "CREATE UNIQUE INDEX IF NOT EXISTS ix_users_referral_code"
                 " ON users (referral_code) WHERE referral_code IS NOT NULL;"
             ))
+            conn.execute(text(
+                """
+                CREATE TABLE IF NOT EXISTS platform_settings (
+                    key VARCHAR(64) PRIMARY KEY,
+                    value VARCHAR(255) NOT NULL,
+                    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                );
+                """
+            ))
         else:
             user_cols = {row[1] for row in conn.execute(text("PRAGMA table_info(users)"))}
             if "phone_number" not in user_cols:
@@ -424,6 +433,23 @@ def _run_migrations():
                 "CREATE UNIQUE INDEX IF NOT EXISTS ix_champion_predictions_user_category"
                 " ON champion_predictions (user_id, category_id);"
             ))
+
+            tables = {
+                row[0]
+                for row in conn.execute(
+                    text("SELECT name FROM sqlite_master WHERE type='table'")
+                )
+            }
+            if "platform_settings" not in tables:
+                conn.execute(text(
+                    """
+                    CREATE TABLE platform_settings (
+                        key VARCHAR(64) PRIMARY KEY,
+                        value VARCHAR(255) NOT NULL,
+                        updated_at DATETIME NOT NULL
+                    );
+                    """
+                ))
 
 
 def prediction_label(p: Prediction) -> str:
@@ -736,6 +762,10 @@ def puntos_page(
         if starts_at:
             countdown_ms = pet_timestamp_ms(starts_at)
 
+    from app.prize_tiers import get_current_tier
+
+    tier_ctx = get_current_tier(db)
+
     return render(
         "proximamente.html",
         {
@@ -746,6 +776,12 @@ def puntos_page(
             "my_points": my_points,
             "hp_rules": hp_rules,
             "countdown_ms": countdown_ms,
+            "current_tier": tier_ctx["current_tier"],
+            "next_tier": tier_ctx["next_tier"],
+            "verified_count": tier_ctx["verified_count"],
+            "progreso": tier_ctx["progreso"],
+            "locked_tiers": tier_ctx["locked_tiers"],
+            "is_max_tier": tier_ctx["is_max_tier"],
         },
         request=request,
         db=db,

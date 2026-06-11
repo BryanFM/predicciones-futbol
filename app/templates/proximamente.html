@@ -40,20 +40,30 @@
   <div class="my-points-card">
     <span class="hp-label">Tus Hamster puntos</span>
     <span class="hp-value lg">{{ my_points.total }}</span>
+    <p class="hp-ranking-summary">
+      HP para el ranking: <strong>{{ my_points.competitive }}</strong>
+      · HP totales: <strong>{{ my_points.total }}</strong>
+    </p>
     <div class="hp-breakdown">
       <span>Marcadores acertados: {{ my_points.score_hits }} × {{ my_points.score_hp_unit }} = {{ my_points.score_points }} HP</span>
+      {% if my_points.outcome_points %}
+      <span>Resultados acertados (1X2): {{ my_points.outcome_hits }} × {{ my_points.outcome_hp_unit }} = {{ my_points.outcome_points }} HP <small class="hp-non-competitive">(no cuenta para el podio)</small></span>
+      {% endif %}
       <span>Campeón acertado: {{ my_points.champion_hits }} × {{ my_points.champion_hp_unit }} = {{ my_points.champion_points }} HP</span>
       {% if my_points.purchased_points %}
-      <span>Comprados con Yape: +{{ my_points.purchased_points }} HP</span>
+      <span>Comprados con Yape: +{{ my_points.purchased_points }} HP <small class="hp-non-competitive">(no cuenta para el podio)</small></span>
       {% endif %}
       {% if my_points.referral_points %}
-      <span>Referidos: +{{ my_points.referral_points }} HP</span>
+      <span>Referidos: +{{ my_points.referral_points }} HP <small class="hp-non-competitive">(no cuenta para el podio)</small></span>
       {% endif %}
       {% if my_points.group_leader_points %}
       <span>Líder de grupo: +{{ my_points.group_leader_points }} HP</span>
       {% endif %}
       {% if my_points.bonus_points > my_points.referral_points + my_points.group_leader_points %}
       <span>Otros bonos: +{{ my_points.bonus_points - my_points.referral_points - my_points.group_leader_points }} HP</span>
+      {% endif %}
+      {% if my_points.wager_net %}
+      <span>Apuestas (neto): {% if my_points.wager_net > 0 %}+{% endif %}{{ my_points.wager_net }} HP <small class="hp-non-competitive">(no cuenta para el podio)</small></span>
       {% endif %}
     </div>
   </div>
@@ -69,11 +79,13 @@
       </li>
       <li>👥 Invita amigos → <strong>+{{ hp_rules.referral_referrer }} HP</strong> por invitado verificado (<a href="/referidos">tu enlace</a>)</li>
       <li>🏆 Líder de grupo → <strong>+{{ hp_rules.group_leader }} HP</strong> (más aciertos en fase de grupos)</li>
-      <li>🔒 La predicción de campeón cierra al iniciar el torneo</li>
-      <li>🎯 Solo cuenta el marcador exacto (local y visitante)</li>
+      <li>🔒 La predicción de campeón cierra al finalizar la fase de grupos del torneo</li>
       {% if YAPE_PAYMENTS_ENABLED %}
       <li>💜 Compra HP extra con Yape (QR oficial)</li>
       {% endif %}
+      <li>🏅 Solo los HP ganados por aciertos cuentan para el podio. Los HP comprados, de referidos y de apuestas sirven para apostar y para los sorteos.</li>
+      <li>🎟 Cada <strong>50 HP totales</strong> = 1 ticket del sorteo</li>
+      <li>⚖️ Desempate del podio: 1) más marcadores exactos, 2) acertó el campeón, 3) registro más antiguo</li>
     </ul>
   </div>
 
@@ -81,6 +93,7 @@
   <section class="panel leaderboard-panel">
     <h3 class="ranking-title">
       Ranking
+      <span class="ranking-subtitle">por HP de aciertos</span>
       {% if selected_category %}
       <span class="tournament-label">
         {{ tournament_icon(selected_category, 'xs') }}
@@ -97,7 +110,12 @@
           {% if row.user.picture %}{{ user_avatar(row.user, 'avatar avatar-sm', 'sm') }}{% endif %}
           <span>{{ row.user.name.split()[0] }}</span>
         </div>
-        <span class="lb-points">{{ row.total }} HP</span>
+        <span class="lb-points" title="HP totales: {{ row.total }}">
+          {{ row.competitive }} HP
+          {% if row.total != row.competitive %}
+          <span class="lb-points-total">({{ row.total }})</span>
+          {% endif %}
+        </span>
       </li>
       {% endfor %}
     </ol>
@@ -106,23 +124,84 @@
   <p class="empty-sm">Aún no hay puntos registrados en este torneo.</p>
   {% endif %}
 
-  <div class="prize-grid">
-    <div class="prize-card gold">
-      <span class="prize-pos">🥇</span>
-      <span class="prize-label">1er lugar</span>
-      <span class="prize-desc">Premio mayor</span>
+  <section class="prize-tier-section">
+    <div class="prize-tier-progress panel">
+      <div class="prize-tier-progress-head">
+        {% if next_tier %}
+        <p class="prize-tier-meta">
+          <strong>{{ verified_count }}</strong> / {{ progreso.target }} verificados — {{ current_tier.label }}
+        </p>
+        {% else %}
+        <p class="prize-tier-meta">
+          <strong>{{ verified_count }}</strong> verificados — {{ current_tier.label }}
+          <span class="prize-tier-max-badge">Nivel máximo alcanzado</span>
+        </p>
+        {% endif %}
+        <a href="/referidos" class="btn btn-primary btn-sm prize-tier-cta">Invita con tu enlace</a>
+      </div>
+      <div class="prize-tier-progress-bar" role="progressbar"
+           aria-valuenow="{{ progreso.percent|int }}"
+           aria-valuemin="0"
+           aria-valuemax="100"
+           aria-label="Progreso hacia el siguiente nivel de premios">
+        <span class="prize-tier-progress-fill" style="width: {{ progreso.percent }}%"></span>
+      </div>
+      {% if next_tier %}
+      <p class="prize-tier-progress-hint">
+        Faltan <strong>{{ [progreso.target - verified_count, 0]|max }}</strong> verificados para desbloquear <strong>{{ next_tier.label }}</strong>
+      </p>
+      {% endif %}
     </div>
-    <div class="prize-card silver">
-      <span class="prize-pos">🥈</span>
-      <span class="prize-label">2do lugar</span>
-      <span class="prize-desc">Premio especial</span>
+
+    <h3 class="prize-tier-title">Premios activos — {{ current_tier.label }}</h3>
+    <div class="prize-grid">
+      <div class="prize-card gold">
+        <span class="prize-pos">🥇</span>
+        <span class="prize-label">1er lugar</span>
+        <span class="prize-desc">{{ current_tier.prizes.podio['1'] }}</span>
+      </div>
+      <div class="prize-card silver">
+        <span class="prize-pos">🥈</span>
+        <span class="prize-label">2do lugar</span>
+        <span class="prize-desc">{{ current_tier.prizes.podio['2'] }}</span>
+      </div>
+      <div class="prize-card bronze">
+        <span class="prize-pos">🥉</span>
+        <span class="prize-label">3er lugar</span>
+        <span class="prize-desc">{{ current_tier.prizes.podio['3'] }}</span>
+      </div>
     </div>
-    <div class="prize-card bronze">
-      <span class="prize-pos">🥉</span>
-      <span class="prize-label">3er lugar</span>
-      <span class="prize-desc">Premio sorpresa</span>
+    {% if current_tier.prizes.sorteo %}
+    <div class="prize-sorteo-banner">
+      <span class="prize-sorteo-icon" aria-hidden="true">🎟</span>
+      <div>
+        <span class="prize-sorteo-label">Sorteo del nivel</span>
+        <span class="prize-sorteo-value">{{ current_tier.prizes.sorteo }}</span>
+      </div>
     </div>
-  </div>
+    {% endif %}
+
+    {% if locked_tiers %}
+    <div class="prize-tiers-locked">
+      <h4 class="prize-tiers-locked-title">Próximos niveles</h4>
+      <ul class="prize-tiers-locked-list">
+        {% for tier in locked_tiers %}
+        <li class="prize-tier-locked-item">
+          <span class="prize-tier-locked-icon" aria-hidden="true">🔒</span>
+          <div class="prize-tier-locked-body">
+            <span class="prize-tier-locked-name">{{ tier.label }}</span>
+            <span class="prize-tier-locked-threshold">{{ tier.threshold }} verificados</span>
+            <span class="prize-tier-locked-prizes">
+              Podio: {{ tier.prizes.podio['1'] }}, {{ tier.prizes.podio['2'] }}, {{ tier.prizes.podio['3'] }}
+              {% if tier.prizes.sorteo %} · Sorteo: {{ tier.prizes.sorteo }}{% endif %}
+            </span>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+  </section>
 
   {% if not current_user %}
   <a href="/auth/login" class="btn btn-google" style="margin-top:1.5rem">

@@ -1629,6 +1629,180 @@ body.profile-menu-open {
 .prize-label{ font-weight: 700; font-size: 0.9rem; }
 .prize-desc { font-size: 0.8rem; color: var(--muted); }
 
+.prize-tier-section {
+  margin: 2rem 0;
+  text-align: left;
+}
+
+.prize-tier-progress {
+  margin-bottom: 1.5rem;
+  padding: 1.25rem 1.5rem;
+}
+
+.prize-tier-progress-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.85rem;
+}
+
+.prize-tier-meta {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.prize-tier-meta strong {
+  color: var(--primary);
+  font-size: 1.05rem;
+}
+
+.prize-tier-max-badge {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--primary);
+  background: var(--primary-a12);
+  vertical-align: middle;
+}
+
+.prize-tier-cta {
+  flex-shrink: 0;
+}
+
+.prize-tier-progress-bar {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.prize-tier-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--hamster-orange), var(--hamster-gold));
+  transition: width 0.35s ease;
+}
+
+.prize-tier-progress-hint {
+  margin: 0.65rem 0 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.prize-tier-title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0 0 1rem;
+  color: var(--text);
+}
+
+.prize-sorteo-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: -0.5rem 0 1.5rem;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--primary-a25);
+  background: var(--primary-a08);
+}
+
+.prize-sorteo-icon {
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.prize-sorteo-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.prize-sorteo-value {
+  display: block;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.prize-tiers-locked {
+  margin-top: 0.5rem;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius);
+  border: 1px dashed var(--border);
+  background: var(--surface);
+}
+
+.prize-tiers-locked-title {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.prize-tiers-locked-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.prize-tier-locked-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  background: var(--surface-2);
+  opacity: 0.85;
+}
+
+.prize-tier-locked-icon {
+  flex-shrink: 0;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.prize-tier-locked-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.prize-tier-locked-name {
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--text);
+}
+
+.prize-tier-locked-threshold {
+  font-size: 0.78rem;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.prize-tier-locked-prizes {
+  font-size: 0.76rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
 .rules-box, .countdown-inline, .my-points-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -3029,6 +3203,39 @@ input:focus, select:focus {
   color: var(--muted);
 }
 
+.hp-ranking-summary {
+  margin: 0.35rem 0 0;
+  font-size: 0.88rem;
+  color: var(--text);
+  opacity: 0.9;
+}
+
+.hp-ranking-summary strong {
+  color: var(--primary);
+}
+
+.hp-non-competitive {
+  opacity: 0.75;
+  font-size: 0.78rem;
+}
+
+.ranking-subtitle {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--muted);
+  margin-top: 0.15rem;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.lb-points-total {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--muted);
+  margin-left: 0.15rem;
+}
+
 .leaderboard-list {
   list-style: none;
   padding: 0;
@@ -3874,7 +4081,7 @@ body.cookie-banner-open .site-footer {
 .faq-question {
   font-size: 0.95rem;
   font-weight: 600;
-  color: rgb(206, 131, 253);
+  color: var(--primary);
   margin: 0 0 0.75rem;
   line-height: 1.35;
 }
