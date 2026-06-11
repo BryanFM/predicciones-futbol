@@ -24,7 +24,7 @@ from app.rendering import render, render_error_page, static_url, templates
 
 BASE_DIR = Path(__file__).resolve().parent
 
-from app.routers import account, admin, referrals, verify, wagers, v2_demo, yape
+from app.routers import account, admin, referrals, verify, wagers, yape
 
 app = FastAPI(title="Hamster Fijas")
 app.include_router(verify.router)
@@ -33,7 +33,6 @@ app.include_router(admin.router)
 app.include_router(yape.router)
 app.include_router(referrals.router)
 app.include_router(wagers.router)
-app.include_router(v2_demo.router)
 
 
 class NoCacheHTMLMiddleware(BaseHTTPMiddleware):
@@ -827,6 +826,24 @@ def faq_page(
     current_user: Optional[User] = Depends(get_current_user),
 ):
     return render("preguntas_frecuentes.html", {}, request=request, db=db, current_user=current_user)
+
+
+@app.get("/demo/v2", response_class=HTMLResponse, include_in_schema=False)
+def demo_v2_dashboard(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user),
+):
+    from app.routers.v2_demo import build_v2_dashboard_context
+
+    demo = build_v2_dashboard_context(db, current_user)
+    return render(
+        "v2/dashboard.html",
+        {"demo": demo, "selected_category_id": demo.get("selected_category_id")},
+        request=request,
+        db=db,
+        current_user=current_user,
+    )
 
 
 @app.get("/partidos/{match_id}", response_class=HTMLResponse)

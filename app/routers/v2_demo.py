@@ -1,4 +1,4 @@
-"""Rutas de demostración UI v2 — datos en vivo desde la BD."""
+"""Contexto y helpers para la demo UI v2."""
 
 from __future__ import annotations
 
@@ -6,20 +6,13 @@ from collections import Counter
 from datetime import timedelta
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Request
-from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 
-from app.auth import get_current_user
-from app.database import get_db
 from app.models import Match, Prediction, PredictionResult, PredictionType, User
 from app.points import leaderboard, user_hamster_points
 from app.referrals import referral_stats
-from app.rendering import render
 from app.services import get_match_outcome_stats_batch, get_mundial_category
 from app.timezone import peru_now
-
-router = APIRouter(tags=["v2-demo"])
 
 _WEEKDAYS = ("Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom")
 
@@ -310,19 +303,3 @@ def build_v2_dashboard_context(
         "achievements": _build_achievements(my_points, rank, len(friends)),
         "selected_category_id": category_id,
     }
-
-
-@router.get("/demo/v2", response_class=HTMLResponse, include_in_schema=False)
-def dashboard_v2_demo(
-    request: Request,
-    db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user),
-):
-    demo = build_v2_dashboard_context(db, current_user)
-    return render(
-        "v2/dashboard.html",
-        {"demo": demo, "selected_category_id": demo.get("selected_category_id")},
-        request=request,
-        db=db,
-        current_user=current_user,
-    )
