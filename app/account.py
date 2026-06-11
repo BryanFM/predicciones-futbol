@@ -62,6 +62,9 @@ def delete_user_account(db: Session, user: User, *, deleted_by: str = "self") ->
     db.query(YapePurchaseRequest).filter(YapePurchaseRequest.reviewed_by_id == user_id).update(
         {YapePurchaseRequest.reviewed_by_id: None}, synchronize_session=False
     )
+    from app.models import PointWager
+
+    db.query(PointWager).filter(PointWager.user_id == user_id).delete()
     db.query(PointBonus).filter(PointBonus.user_id == user_id).delete()
     db.query(YapePurchaseRequest).filter(YapePurchaseRequest.user_id == user_id).delete()
     db.query(PhoneVerification).filter(PhoneVerification.user_id == user_id).delete()

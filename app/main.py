@@ -24,7 +24,7 @@ from app.rendering import render, render_error_page, static_url, templates
 
 BASE_DIR = Path(__file__).resolve().parent
 
-from app.routers import account, admin, referrals, verify, yape
+from app.routers import account, admin, referrals, verify, wagers, yape
 
 app = FastAPI(title="Hamster Fijas")
 app.include_router(verify.router)
@@ -32,6 +32,7 @@ app.include_router(account.router)
 app.include_router(admin.router)
 app.include_router(yape.router)
 app.include_router(referrals.router)
+app.include_router(wagers.router)
 
 
 class NoCacheHTMLMiddleware(BaseHTTPMiddleware):
@@ -74,6 +75,24 @@ class ReferralCaptureMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+class CanonicalHostMiddleware(BaseHTTPMiddleware):
+    """Redirige *.onrender.com al dominio público definido en SITE_URL."""
+
+    async def dispatch(self, request, call_next):
+        if request.url.path == "/health":
+            return await call_next(request)
+        configured = os.environ.get("SITE_URL", "").strip().rstrip("/")
+        if not configured or os.environ.get("ENVIRONMENT", "").lower() != "production":
+            return await call_next(request)
+        host = (request.url.hostname or "").lower()
+        if host.endswith(".onrender.com"):
+            target = configured + request.url.path
+            if request.url.query:
+                target += "?" + request.url.query
+            return RedirectResponse(target, status_code=301)
+        return await call_next(request)
+
+
 app.add_middleware(ReferralCaptureMiddleware)
 app.add_middleware(NoCacheHTMLMiddleware)
 app.add_middleware(StaticCacheMiddleware)
@@ -84,6 +103,7 @@ app.add_middleware(
     same_site="lax",
     https_only=os.environ.get("HTTPS_ONLY", "false").lower() == "true",
 )
+app.add_middleware(CanonicalHostMiddleware)
 
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
@@ -277,6 +297,7 @@ def _run_migrations():
         # ALTER TYPE ADD VALUE requiere autocommit (no puede correr en transacción)
         with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
             conn.execute(text("ALTER TYPE predictiontype ADD VALUE IF NOT EXISTS 'SCORE';"))
+            conn.execute(text("ALTER TYPE predictiontype ADD VALUE IF NOT EXISTS 'OUTCOME';"))
 
     with engine.begin() as conn:
         if is_pg:
@@ -316,6 +337,9 @@ def _run_migrations():
             ))
             conn.execute(text(
                 "ALTER TABLE predictions ADD COLUMN IF NOT EXISTS predicted_away_score INTEGER;"
+            ))
+            conn.execute(text(
+                "ALTER TABLE predictions ADD COLUMN IF NOT EXISTS outcome_pick VARCHAR(2);"
             ))
             conn.execute(text(
                 "ALTER TABLE categories ADD COLUMN IF NOT EXISTS starts_at TIMESTAMP;"
@@ -381,6 +405,8 @@ def _run_migrations():
                 conn.execute(text("ALTER TABLE predictions ADD COLUMN predicted_home_score INTEGER;"))
             if "predicted_away_score" not in cols:
                 conn.execute(text("ALTER TABLE predictions ADD COLUMN predicted_away_score INTEGER;"))
+            if "outcome_pick" not in cols:
+                conn.execute(text("ALTER TABLE predictions ADD COLUMN outcome_pick VARCHAR(2);"))
 
             if "starts_at" not in cat_cols:
                 conn.execute(text("ALTER TABLE categories ADD COLUMN starts_at DATETIME;"))
@@ -404,6 +430,9 @@ def prediction_label(p: Prediction) -> str:
         if p.predicted_home_score is not None and p.predicted_away_score is not None:
             return f"Marcador: {p.predicted_home_score} - {p.predicted_away_score}"
         return "Marcador"
+    if p.type == PredictionType.OUTCOME:
+        labels = {"1": "Gana local", "X": "Empate", "2": "Gana visitante"}
+        return f"Resultado: {labels.get(p.outcome_pick or '', p.outcome_pick)}"
     if p.type == PredictionType.DOUBLE_CHANCE:
         labels = {"1X": "Local o Empate", "X2": "Empate o Visitante", "12": "Local o Visitante"}
         return f"Doble oportunidad: {labels.get(p.double_chance or '', p.double_chance)}"
@@ -721,6 +750,13 @@ def match_predictions_page(
         p for p in match.predictions
         if current_user and p.user_id == current_user.id and p.type == PredictionType.SCORE
     ]
+    my_outcome = next(
+        (
+            p for p in match.predictions
+            if current_user and p.user_id == current_user.id and p.type == PredictionType.OUTCOME
+        ),
+        None,
+    )
     others = []
     if current_user:
         others = [
@@ -732,12 +768,36 @@ def match_predictions_page(
             )
         ]
 
+    my_wager = None
+    wager_ctx = None
+    if current_user and current_user.phone_verified:
+        from app.models import PointWager, WagerStatus
+        from app.wagers import MAX_STAKE, MIN_STAKE, WAGER_PICKS, wager_balance
+
+        my_wager = (
+            db.query(PointWager)
+            .filter(PointWager.user_id == current_user.id, PointWager.match_id == match.id)
+            .order_by(PointWager.created_at.desc())
+            .first()
+        )
+        wager_ctx = {
+            "balance": wager_balance(db, current_user.id, match.category_id),
+            "picks": WAGER_PICKS,
+            "min_stake": MIN_STAKE,
+            "max_stake": MAX_STAKE,
+            "WagerStatus": WagerStatus,
+        }
+
     return render(
         "match_detail.html",
         {
             "match": match,
             "my_predictions": my_predictions,
+            "my_outcome": my_outcome,
+            "outcome_labels": OUTCOME_PICK_LABELS,
             "other_predictions": others,
+            "my_wager": my_wager,
+            "wager_ctx": wager_ctx,
         },
         request=request,
         db=db,
@@ -841,9 +901,11 @@ def update_score(
     match.away_score = away_score
     from app.services import reevaluate_match_predictions
     from app.group_leader import evaluate_group_leaders
+    from app.wagers import settle_wagers_for_match
 
     reevaluate_match_predictions(db, match)
     evaluate_group_leaders(db, match.category_id)
+    settle_wagers_for_match(db, match)
     return ajax_or_redirect(
         request,
         f"/partidos/{match_id}",
@@ -870,7 +932,10 @@ def clear_score(
     match.home_score = None
     match.away_score = None
     from app.services import reevaluate_match_predictions
+    from app.wagers import settle_wagers_for_match
+
     reevaluate_match_predictions(db, match)
+    settle_wagers_for_match(db, match)
     return ajax_or_redirect(
         request,
         f"/partidos/{match_id}?msg=Marcador+oficial+eliminado",
@@ -986,6 +1051,59 @@ def set_prediction_result(
     prediction.result = PredictionResult(result)
     db.commit()
     return RedirectResponse(f"/partidos/{prediction.match_id}", status_code=303)
+
+
+OUTCOME_PICK_LABELS = {"1": "Gana local", "X": "Empate", "2": "Gana visitante"}
+
+
+@app.post("/predictions/outcome")
+def save_outcome_prediction(
+    request: Request,
+    match_id: int = Form(...),
+    outcome_pick: str = Form(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_verified),
+):
+    from app.flash import flash
+
+    match = db.get(Match, match_id)
+    if not match:
+        raise HTTPException(404)
+    back = f"/partidos/{match_id}"
+    pick = outcome_pick.strip().upper()
+    if pick not in OUTCOME_PICK_LABELS:
+        flash(request, error="Elige un resultado válido: local, empate o visitante.")
+        return RedirectResponse(back, status_code=303)
+    if not match.predictions_open:
+        flash(request, error="Las predicciones cerraron para este partido.")
+        return RedirectResponse(back, status_code=303)
+
+    existing = (
+        db.query(Prediction)
+        .filter(
+            Prediction.match_id == match_id,
+            Prediction.user_id == current_user.id,
+            Prediction.type == PredictionType.OUTCOME,
+        )
+        .first()
+    )
+    if existing:
+        existing.outcome_pick = pick
+        existing.result = PredictionResult.PENDING
+        verb = "actualizada"
+    else:
+        db.add(
+            Prediction(
+                match_id=match_id,
+                user_id=current_user.id,
+                type=PredictionType.OUTCOME,
+                outcome_pick=pick,
+            )
+        )
+        verb = "registrada"
+    db.commit()
+    flash(request, msg=f"Predicción de resultado {verb}: {OUTCOME_PICK_LABELS[pick]}.")
+    return RedirectResponse(back, status_code=303)
 
 
 @app.post("/predictions/{prediction_id}/delete")

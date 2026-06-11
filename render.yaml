@@ -1,6 +1,6 @@
 # Blueprint Render — https://render.com/docs/blueprint-spec
 # Repo: https://github.com/BryanFM/predicciones-futbol
-# Producción: https://predicciones-futbol-tmyr.onrender.com/
+# Producción: https://hamsterfijas.com
 
 services:
   - type: web
@@ -42,7 +42,7 @@ services:
       - key: CLARITY_PROJECT_ID
         value: x51o85xggi
       - key: SITE_URL
-        value: https://predicciones-futbol-tmyr.onrender.com
+        value: https://hamsterfijas.com
       - key: YAPE_PAYMENTS_ENABLED
         value: "true"
       - key: YAPE_RECIPIENT_PHONE

@@ -75,6 +75,7 @@ class PredictionType(str, enum.Enum):
     SCORE = "score"
     DOUBLE_CHANCE = "double_chance"
     OVER_UNDER = "over_under"
+    OUTCOME = "outcome"  # 1 / X / 2
 
 
 class PredictionResult(str, enum.Enum):
@@ -164,6 +165,7 @@ class Prediction(Base):
     double_chance: Mapped[Optional[str]] = mapped_column(String(5), nullable=True)
     over_under_line: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     over_under_pick: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
+    outcome_pick: Mapped[Optional[str]] = mapped_column(String(2), nullable=True)
     result: Mapped[PredictionResult] = mapped_column(
         Enum(PredictionResult), default=PredictionResult.PENDING, nullable=False
     )
@@ -239,6 +241,34 @@ class PointsRule(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=peru_now, nullable=False)
 
     category: Mapped[Optional["Category"]] = relationship("Category")
+
+
+class WagerStatus(str, enum.Enum):
+    PENDING = "pending"
+    WON = "won"
+    LOST = "lost"
+
+
+class PointWager(Base):
+    """Apuesta de HP sobre el resultado de un partido (1/X/2). Gana → duplica; pierde → pierde lo apostado."""
+
+    __tablename__ = "point_wagers"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    match_id: Mapped[int] = mapped_column(ForeignKey("matches.id"), nullable=False, index=True)
+    category_id: Mapped[int] = mapped_column(ForeignKey("categories.id"), nullable=False, index=True)
+    pick: Mapped[str] = mapped_column(String(2), nullable=False)
+    stake_hp: Mapped[int] = mapped_column(Integer, nullable=False)
+    status: Mapped[WagerStatus] = mapped_column(
+        Enum(WagerStatus), default=WagerStatus.PENDING, nullable=False, index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=peru_now, nullable=False, index=True)
+    settled_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    user: Mapped["User"] = relationship("User")
+    match: Mapped["Match"] = relationship("Match")
+    category: Mapped["Category"] = relationship("Category")
 
 
 class PointBonusType(str, enum.Enum):

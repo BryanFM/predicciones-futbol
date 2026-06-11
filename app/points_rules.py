@@ -10,6 +10,7 @@ from app.models import PointsRule
 from app.timezone import peru_now
 
 RULE_SCORE_HIT = "score_hit"
+RULE_OUTCOME_HIT = "outcome_hit"
 RULE_CHAMPION_HIT = "champion_hit"
 RULE_REFERRAL_REFERRER = "referral_referrer"
 RULE_REFERRAL_REFERRED = "referral_referred"
@@ -21,6 +22,12 @@ DEFAULT_RULES: list[dict] = [
         "label": "Marcador exacto",
         "description": "HP por acertar local y visitante en un partido.",
         "hp_value": 5,
+    },
+    {
+        "rule_key": RULE_OUTCOME_HIT,
+        "label": "Resultado acertado (1X2)",
+        "description": "HP por acertar si gana local, empatan o gana visitante.",
+        "hp_value": 2,
     },
     {
         "rule_key": RULE_CHAMPION_HIT,

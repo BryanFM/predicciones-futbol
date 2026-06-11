@@ -146,6 +146,132 @@
   {% endif %}
 </section>
 
+{% if current_user and current_user.phone_verified %}
+<section class="panel outcome-panel">
+  <h3>⚽ Resultado del partido (1X2)</h3>
+  <p class="wager-balance-hint">
+    Predice si gana {{ match.home_team }}, empatan o gana {{ match.away_team }}.
+    Acertar suma <strong>+{{ hp_rules.outcome_hit }} HP</strong>.
+  </p>
+
+  {% if my_outcome %}
+  <div class="my-score-display result-{{ my_outcome.result.value }}">
+    <div class="my-score-value">{{ outcome_labels.get(my_outcome.outcome_pick, my_outcome.outcome_pick) }}</div>
+    <span class="badge badge-{{ my_outcome.result.value }}">
+      {% if my_outcome.result == PredictionResult.HIT %}✓ Resultado acertado · +{{ hp_rules.outcome_hit }} HP
+      {% elif my_outcome.result == PredictionResult.MISS %}✗ No acertaste
+      {% else %}⏳ Pendiente{% endif %}
+    </span>
+    {% if current_user.is_admin or match.predictions_open %}
+    <form method="post" action="/predictions/{{ my_outcome.id }}/delete" class="delete-score-form">
+      <button type="submit" class="btn btn-danger btn-sm">Eliminar predicción</button>
+    </form>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if match.predictions_open %}
+  <form method="post" action="/predictions/outcome" class="wager-detail-form">
+    <input type="hidden" name="match_id" value="{{ match.id }}">
+    <h4>{% if my_outcome %}Cambiar resultado{% else %}Elegir resultado{% endif %}</h4>
+    <div class="wager-pick-options" role="radiogroup" aria-label="Resultado del partido">
+      <label class="wager-pick-option">
+        <input type="radio" name="outcome_pick" value="1" {% if my_outcome and my_outcome.outcome_pick == '1' %}checked{% endif %} required>
+        <span>Gana {{ match.home_team }}</span>
+      </label>
+      <label class="wager-pick-option">
+        <input type="radio" name="outcome_pick" value="X" {% if my_outcome and my_outcome.outcome_pick == 'X' %}checked{% endif %} required>
+        <span>Empate</span>
+      </label>
+      <label class="wager-pick-option">
+        <input type="radio" name="outcome_pick" value="2" {% if my_outcome and my_outcome.outcome_pick == '2' %}checked{% endif %} required>
+        <span>Gana {{ match.away_team }}</span>
+      </label>
+    </div>
+    <button type="submit" class="btn btn-primary">{% if my_outcome %}Actualizar resultado{% else %}Guardar resultado{% endif %}</button>
+  </form>
+  {% elif not my_outcome %}
+  <p class="predictions-closed">🔒 Predicciones cerradas para este partido</p>
+  {% endif %}
+</section>
+{% endif %}
+
+{% if wager_ctx %}
+<section class="panel wager-panel">
+  <h3>🎰 Apuesta tus HP</h3>
+
+  {% if my_wager %}
+  <div class="my-score-display result-{{ 'hit' if my_wager.status == wager_ctx.WagerStatus.WON else 'miss' if my_wager.status == wager_ctx.WagerStatus.LOST else 'pending' }}">
+    <div class="my-score-value">{{ my_wager.stake_hp }} HP · {{ wager_ctx.picks.get(my_wager.pick, my_wager.pick) }}</div>
+    {% if my_wager.status == wager_ctx.WagerStatus.PENDING %}
+    <span class="badge badge-pending">⏳ En juego — si aciertas ganas +{{ my_wager.stake_hp }} HP</span>
+    {% if match.predictions_open %}
+    <form method="post" action="/apuestas/{{ my_wager.id }}/cancelar" class="delete-score-form">
+      <input type="hidden" name="return_to" value="/partidos/{{ match.id }}">
+      <button type="submit" class="btn btn-danger btn-sm">Retirar apuesta</button>
+    </form>
+    {% endif %}
+    {% elif my_wager.status == wager_ctx.WagerStatus.WON %}
+    <span class="badge badge-hit">✓ Ganaste +{{ my_wager.stake_hp }} HP</span>
+    {% else %}
+    <span class="badge badge-miss">✗ Perdiste −{{ my_wager.stake_hp }} HP</span>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if not my_wager or (my_wager.status != wager_ctx.WagerStatus.PENDING and match.predictions_open) %}
+    {% if match.predictions_open %}
+      {% if wager_ctx.balance.available >= wager_ctx.min_stake %}
+      <form method="post" action="/apuestas" class="wager-detail-form">
+        <input type="hidden" name="match_id" value="{{ match.id }}">
+        <input type="hidden" name="return_to" value="/partidos/{{ match.id }}">
+        <p class="wager-balance-hint">
+          Tienes <strong>{{ wager_ctx.balance.available }} HP disponibles</strong>.
+          Si aciertas el resultado, duplicas lo apostado; si fallas, lo pierdes.
+        </p>
+        <div class="wager-pick-options" role="radiogroup" aria-label="Resultado del partido">
+          <label class="wager-pick-option">
+            <input type="radio" name="pick" value="1" required>
+            <span>Gana {{ match.home_team }}</span>
+          </label>
+          <label class="wager-pick-option">
+            <input type="radio" name="pick" value="X" required>
+            <span>Empate</span>
+          </label>
+          <label class="wager-pick-option">
+            <input type="radio" name="pick" value="2" required>
+            <span>Gana {{ match.away_team }}</span>
+          </label>
+        </div>
+        <div class="wager-stake-row">
+          <label>HP a apostar
+            <input
+              type="number"
+              name="stake"
+              class="wager-stake-input"
+              min="{{ wager_ctx.min_stake }}"
+              max="{{ [wager_ctx.balance.available, wager_ctx.max_stake]|min }}"
+              placeholder="HP"
+              required
+            >
+          </label>
+          <button type="submit" class="btn btn-primary">Apostar</button>
+        </div>
+      </form>
+      {% else %}
+      <p class="empty-sm">No tienes HP disponibles para apostar. Gana puntos acertando marcadores, invitando amigos o <a href="/comprar-yape">comprando HP</a>.</p>
+      {% endif %}
+    {% elif not my_wager %}
+    <p class="predictions-closed">🔒 Apuestas cerradas para este partido</p>
+    {% endif %}
+  {% endif %}
+
+  <p class="wagers-footer-link">
+    <a href="/apuestas?category_id={{ match.category_id }}">Ver todas mis apuestas →</a>
+  </p>
+</section>
+{% endif %}
+
 {% if other_predictions %}
 <section class="panel">
   <h3>Marcadores de otros usuarios ({{ other_predictions|length }})</h3>

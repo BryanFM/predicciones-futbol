@@ -4,7 +4,8 @@ App web para predicciones del Mundial 2026: doble oportunidad, más/menos goles,
 
 | Entorno | URL |
 |---------|-----|
-| **Producción (Render)** | https://predicciones-futbol-tmyr.onrender.com/ |
+| **Producción** | https://hamsterfijas.com |
+| **Render (interno)** | https://predicciones-futbol-tmyr.onrender.com/ |
 | **Desarrollo local** | http://127.0.0.1:8000 |
 
 ## Stack
@@ -73,10 +74,10 @@ cp .env.example .env
 ```
 http://127.0.0.1:8000/auth/callback
 http://localhost:8000/auth/callback
+https://hamsterfijas.com/auth/callback
+https://www.hamsterfijas.com/auth/callback
 https://predicciones-futbol-tmyr.onrender.com/auth/callback
 ```
-
-Cuando conectes **hamsterfijas.com**, añade también sus URIs (ver [docs/LANZAMIENTO.md](docs/LANZAMIENTO.md)).
 
 3. Copia Client ID y Secret a `.env` (local) y al dashboard de Render (producción).
 
@@ -108,13 +109,13 @@ Requiere [Docker Desktop](https://www.docker.com/products/docker-desktop/).
 
 ## Producción (Render)
 
-**URL:** https://predicciones-futbol-tmyr.onrender.com/
+**URL pública:** https://hamsterfijas.com
 
 El blueprint `render.yaml` define:
 
 - Web service `predicciones-futbol` (Python 3.12, health check `/health`)
 - PostgreSQL `predicciones-db`
-- Variables automáticas: `DATABASE_URL`, `SECRET_KEY`, `ENVIRONMENT=production`, `HTTPS_ONLY=true`, `SITE_URL` (URL de Render hasta conectar dominio propio)
+- Variables automáticas: `DATABASE_URL`, `SECRET_KEY`, `ENVIRONMENT=production`, `HTTPS_ONLY=true`, `SITE_URL=https://hamsterfijas.com`
 
 Guía completa de dominio y checklist de lanzamiento: **[docs/LANZAMIENTO.md](docs/LANZAMIENTO.md)**.
 

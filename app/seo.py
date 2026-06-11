@@ -24,6 +24,8 @@ NOINDEX_PREFIXES = (
     "/mis-compras-yape",
     "/yape/qr",
     "/avatars/",
+    "/apuestas",
+    "/mis-puntos",
 )
 
 

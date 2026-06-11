@@ -470,6 +470,8 @@ body {
   pointer-events: none;
   transform: translateY(4px);
   transition: opacity 0.15s, visibility 0.15s, transform 0.15s;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 /* Puente invisible para que el hover no se corte al bajar el cursor */
@@ -4444,5 +4446,138 @@ body.cookie-banner-open .site-footer {
 
   .points-rule-form {
     flex-wrap: wrap;
+  }
+}
+
+/* ── Apuestas de HP e historial de puntos ── */
+.wagers-page,
+.points-history-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.wager-form {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.wager-stake-input {
+  width: 86px;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.wager-pick {
+  min-width: 130px;
+}
+
+.points-hp-col {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.points-hp-pos {
+  color: var(--hit);
+  font-weight: 700;
+}
+
+.points-hp-neg {
+  color: var(--miss);
+  font-weight: 700;
+}
+
+.wagers-footer-link {
+  margin: 0;
+}
+
+.wager-panel .wager-detail-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+.wager-balance-hint {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.wager-pick-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.wager-pick-option {
+  cursor: pointer;
+}
+
+.wager-pick-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.wager-pick-option span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0.6rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+  font-size: 0.85rem;
+  font-weight: 600;
+  min-height: 48px;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.wager-pick-option input:checked + span {
+  border-color: var(--primary);
+  background: var(--primary-a15);
+  color: var(--primary);
+}
+
+.wager-pick-option input:focus-visible + span {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.wager-stake-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+}
+
+.wager-stake-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 640px) {
+  .wager-pick-options {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .wager-form {
+    width: 100%;
+  }
+
+  .wager-pick {
+    flex: 1;
+    min-width: 0;
   }
 }

@@ -16,4 +16,4 @@ ENVIRONMENT=production HTTPS_ONLY=true "$PYTHON" -c "from app.main import app; a
 
 echo "→ OK — listo para deploy en Render"
 echo "  Push a master → auto-deploy si está activado"
-echo "  URL: https://predicciones-futbol-tmyr.onrender.com/"
+echo "  URL pública: https://hamsterfijas.com/"

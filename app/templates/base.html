@@ -134,6 +134,14 @@
                 <span><strong>Hamster puntos</strong><small>Ranking y recompensas</small></span>
               </a>
               {% if current_user.phone_verified %}
+              <a href="/apuestas" class="nav-dropdown-item {% if request.url.path.startswith('/apuestas') %}active{% endif %}">
+                <span class="nav-dropdown-icon">🎰</span>
+                <span><strong>Apostar HP</strong><small>Duplica tus puntos</small></span>
+              </a>
+              <a href="/mis-puntos" class="nav-dropdown-item {% if request.url.path == '/mis-puntos' %}active{% endif %}">
+                <span class="nav-dropdown-icon">📒</span>
+                <span><strong>Historial de puntos</strong><small>Todos tus movimientos</small></span>
+              </a>
               <a href="/referidos" class="nav-dropdown-item {% if request.url.path == '/referidos' %}active{% endif %}">
                 <span class="nav-dropdown-icon">👥</span>
                 <span><strong>Invita amigos</strong><small>Gana HP por referidos</small></span>

@@ -182,6 +182,11 @@ def evaluate_score(home: int, away: int, pred_home: int, pred_away: int) -> bool
     return home == pred_home and away == pred_away
 
 
+def evaluate_outcome(home: int, away: int, pick: str) -> bool:
+    actual = "1" if home > away else "2" if home < away else "X"
+    return pick == actual
+
+
 def evaluate_prediction(prediction: Prediction, match: Match) -> PredictionResult:
     if not match.is_finished:
         return PredictionResult.PENDING
@@ -207,6 +212,8 @@ def evaluate_prediction(prediction: Prediction, match: Match) -> PredictionResul
         ok = evaluate_over_under(
             home + away, prediction.over_under_line, prediction.over_under_pick
         )
+    elif prediction.type == PredictionType.OUTCOME and prediction.outcome_pick:
+        ok = evaluate_outcome(home, away, prediction.outcome_pick)
     else:
         return PredictionResult.PENDING
 
