@@ -30,6 +30,10 @@ def referrals_page(
     stats = referral_stats(db, current_user.id, selected)
     hp_rules = rules_dict(db, selected)
 
+    from app.prize_tiers import get_current_tier
+
+    tier_ctx = get_current_tier(db)
+
     return render(
         "referrals/index.html",
         {
@@ -40,6 +44,12 @@ def referrals_page(
             "stats": stats,
             "hp_rules": hp_rules,
             "points_rules": get_rules_for_admin(db, selected),
+            "current_tier": tier_ctx["current_tier"],
+            "next_tier": tier_ctx["next_tier"],
+            "verified_count": tier_ctx["verified_count"],
+            "progreso": tier_ctx["progreso"],
+            "locked_tiers": tier_ctx["locked_tiers"],
+            "is_max_tier": tier_ctx["is_max_tier"],
         },
         request=request,
         db=db,

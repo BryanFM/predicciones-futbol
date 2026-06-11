@@ -124,7 +124,7 @@
     </form>
     {% elif champion_open and not current_user %}
     <p class="login-hint"><a href="/auth/login">Inicia sesión</a> para elegir al campeón.</p>
-    {% elif champion_open and not current_user.phone_verified %}
+    {% elif champion_open and current_user and not current_user.phone_verified %}
     <p class="login-hint"><a href="/verificar-telefono">Verifica tu celular</a> para participar.</p>
     {% elif not selected_category.champion_decided %}
     <p class="predictions-closed">🔒 Predicciones de campeón cerradas</p>

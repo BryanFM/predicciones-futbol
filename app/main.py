@@ -259,6 +259,7 @@ def on_startup():
     from app.yape_policy import yape_payments_enabled
 
     templates.env.globals["YAPE_PAYMENTS_ENABLED"] = yape_payments_enabled()
+    templates.env.globals["SORTEO_POPUP_ENABLED"] = sorteo_popup_enabled()
     _validate_oauth_config()
     Base.metadata.create_all(bind=engine)
     _run_migrations()
@@ -501,14 +502,20 @@ templates.env.globals["PredictionType"] = PredictionType
 
 from app.yape_policy import YAPE_PACKAGES, YAPE_RECIPIENT_NAME, yape_payments_enabled
 
+
+def sorteo_popup_enabled() -> bool:
+    return os.environ.get("SORTEO_POPUP_ENABLED", "false").strip().lower() in ("1", "true", "yes")
+
+
 templates.env.globals["YAPE_PAYMENTS_ENABLED"] = yape_payments_enabled()
+templates.env.globals["SORTEO_POPUP_ENABLED"] = sorteo_popup_enabled()
 templates.env.globals["YAPE_PACKAGES"] = YAPE_PACKAGES
 templates.env.globals["YAPE_RECIPIENT_NAME"] = YAPE_RECIPIENT_NAME
 
 SUPPORT_EMAIL = os.environ.get("SUPPORT_EMAIL", "soporte@hamsterfijas.com").strip() or "soporte@hamsterfijas.com"
 SUPPORT_INSTAGRAM_URL = os.environ.get(
-    "SUPPORT_INSTAGRAM_URL", "mailto:soporte@hamsterfijas.com"
-).strip() or "mailto:soporte@hamsterfijas.com"
+    "SUPPORT_INSTAGRAM_URL", "https://www.instagram.com/hamsterfijas/"
+).strip() or "https://www.instagram.com/hamsterfijas/"
 SUPPORT_INSTAGRAM_HANDLE = os.environ.get("SUPPORT_INSTAGRAM_HANDLE", "@hamsterfijas").strip() or "@hamsterfijas"
 
 templates.env.globals["SUPPORT_EMAIL"] = SUPPORT_EMAIL

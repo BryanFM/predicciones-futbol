@@ -1,0 +1,82 @@
+{% macro prize_tier_progress(current_tier, next_tier, verified_count, progreso, locked_tiers, is_max_tier, show_referral_cta=false) %}
+<section class="prize-tier-section{% if show_referral_cta %} prize-tier-section-compact{% endif %}">
+  <div class="prize-tier-progress panel">
+    <div class="prize-tier-progress-head">
+      {% if next_tier %}
+      <p class="prize-tier-meta">
+        <strong>{{ verified_count }}</strong> / {{ progreso.target }} verificados — {{ current_tier.label }}
+      </p>
+      {% else %}
+      <p class="prize-tier-meta">
+        <strong>{{ verified_count }}</strong> verificados — {{ current_tier.label }}
+        <span class="prize-tier-max-badge">Nivel máximo alcanzado</span>
+      </p>
+      {% endif %}
+      {% if show_referral_cta %}
+      <a href="/referidos" class="btn btn-primary btn-sm prize-tier-cta">Invita con tu enlace</a>
+      {% endif %}
+    </div>
+    <div class="prize-tier-progress-bar" role="progressbar"
+         aria-valuenow="{{ progreso.percent|int }}"
+         aria-valuemin="0"
+         aria-valuemax="100"
+         aria-label="Progreso hacia el siguiente nivel de premios">
+      <span class="prize-tier-progress-fill" style="width: {{ progreso.percent }}%"></span>
+    </div>
+    {% if next_tier %}
+    <p class="prize-tier-progress-hint">
+      Faltan <strong>{{ [progreso.target - verified_count, 0]|max }}</strong> verificados para desbloquear <strong>{{ next_tier.label }}</strong>
+    </p>
+    {% endif %}
+  </div>
+
+  <h3 class="prize-tier-title">Premios activos — {{ current_tier.label }}</h3>
+  <div class="prize-grid">
+    <div class="prize-card gold">
+      <span class="prize-pos">🥇</span>
+      <span class="prize-label">1er lugar</span>
+      <span class="prize-desc">{{ current_tier.prizes.podio['1'] }}</span>
+    </div>
+    <div class="prize-card silver">
+      <span class="prize-pos">🥈</span>
+      <span class="prize-label">2do lugar</span>
+      <span class="prize-desc">{{ current_tier.prizes.podio['2'] }}</span>
+    </div>
+    <div class="prize-card bronze">
+      <span class="prize-pos">🥉</span>
+      <span class="prize-label">3er lugar</span>
+      <span class="prize-desc">{{ current_tier.prizes.podio['3'] }}</span>
+    </div>
+  </div>
+  {% if current_tier.prizes.sorteo %}
+  <div class="prize-sorteo-banner">
+    <span class="prize-sorteo-icon" aria-hidden="true">🎟</span>
+    <div>
+      <span class="prize-sorteo-label">Sorteo del nivel</span>
+      <span class="prize-sorteo-value">{{ current_tier.prizes.sorteo }}</span>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if locked_tiers %}
+  <div class="prize-tiers-locked">
+    <h4 class="prize-tiers-locked-title">Próximos niveles</h4>
+    <ul class="prize-tiers-locked-list">
+      {% for tier in locked_tiers %}
+      <li class="prize-tier-locked-item">
+        <span class="prize-tier-locked-icon" aria-hidden="true">🔒</span>
+        <div class="prize-tier-locked-body">
+          <span class="prize-tier-locked-name">{{ tier.label }}</span>
+          <span class="prize-tier-locked-threshold">{{ tier.threshold }} verificados</span>
+          <span class="prize-tier-locked-prizes">
+            Podio: {{ tier.prizes.podio['1'] }}, {{ tier.prizes.podio['2'] }}, {{ tier.prizes.podio['3'] }}
+            {% if tier.prizes.sorteo %} · Sorteo: {{ tier.prizes.sorteo }}{% endif %}
+          </span>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+</section>
+{% endmacro %}

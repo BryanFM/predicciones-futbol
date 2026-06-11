@@ -38,6 +38,7 @@
   --border: #5a4634;
   --text: var(--hamster-cream);
   --muted: #c9a87a;
+  --text-muted: var(--muted);
   --primary: var(--hamster-gold);
   --primary-dark: var(--hamster-orange);
   --primary-contrast: var(--hamster-black);
@@ -93,6 +94,7 @@
   --border: #dcc4a0;
   --text: var(--hamster-black);
   --muted: #8a6840;
+  --text-muted: var(--muted);
   --primary: var(--hamster-orange);
   --primary-dark: var(--hamster-brown);
   --primary-contrast: #fffdf8;
@@ -4887,7 +4889,7 @@ body.cookie-banner-open .site-footer {
 
 /* Referidos y reglas HP admin */
 .referrals-page {
-  max-width: 640px;
+  max-width: 720px;
   margin: 0 auto;
 }
 
@@ -4896,9 +4898,39 @@ body.cookie-banner-open .site-footer {
   margin-bottom: 1.5rem;
 }
 
+.referrals-hero-img {
+  display: block;
+  margin: 0 auto 0.75rem;
+}
+
 .referrals-sub {
-  color: var(--text-muted);
+  color: var(--muted);
   margin-top: 0.35rem;
+  line-height: 1.55;
+  max-width: 540px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.referrals-page .prize-tier-section {
+  margin-top: 0;
+  margin-bottom: 1.75rem;
+}
+
+.referral-empty-panel {
+  text-align: center;
+}
+
+.referral-empty-text {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.referrals-footer-link {
+  margin: 1.5rem 0 0.5rem;
+  text-align: center;
 }
 
 .referral-link-card h3 {
@@ -4979,8 +5011,12 @@ body.cookie-banner-open .site-footer {
 .referral-rewards-list {
   margin: 0;
   padding-left: 1.25rem;
-  color: var(--text-muted);
+  color: var(--muted);
   font-size: 0.9rem;
+}
+
+.referral-rewards-list a {
+  color: var(--primary);
 }
 
 .referral-rewards-list li + li {
