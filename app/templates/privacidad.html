@@ -1,12 +1,12 @@
 {% extends "base.html" %}
+{% from "macros/page_v2.html" import internal_shell, page_hero %}
 {% block title %}Política de Privacidad – Hamster Fijas{% endblock %}
 {% block meta_description %}Política de privacidad de Hamster Fijas: datos que recopilamos, cookies, derechos ARCO (Ley 29733 Perú) y contacto.{% endblock %}
 
 {% block content %}
+{% call internal_shell() %}
+{{ page_hero('Política de Privacidad', 'Última actualización: 10 de junio de 2026') }}
 <div class="legal-page">
-  <h2 class="legal-title">Política de Privacidad</h2>
-  <p class="legal-updated">Última actualización: 10 de junio de 2026</p>
-
   <section class="legal-section">
     <h3>1. Responsable del tratamiento</h3>
     <p>
@@ -146,4 +146,5 @@
     </p>
   </section>
 </div>
+{% endcall %}
 {% endblock %}

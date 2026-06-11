@@ -1,0 +1,618 @@
+/* Páginas internas — diseño v2 (body.app-v2) */
+
+.app-v2-main.container {
+  max-width: 920px;
+}
+
+.app-v2-shell.internal-page {
+  padding-top: 0.25rem;
+}
+
+.internal-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Hero de página interna */
+.v2-page-hero {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem 1.35rem;
+  border-radius: var(--v2-radius);
+  background: linear-gradient(135deg, #5b21b6 0%, #6f42c1 45%, #9333ea 100%);
+  box-shadow: var(--v2-shadow);
+  margin-bottom: 0.25rem;
+}
+
+.v2-page-hero-mascot {
+  flex-shrink: 0;
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+}
+
+.v2-page-hero-content {
+  min-width: 0;
+}
+
+.v2-page-title {
+  margin: 0;
+  font-size: clamp(1.25rem, 3vw, 1.65rem);
+  font-weight: 800;
+  line-height: 1.15;
+  color: #fff;
+}
+
+.v2-page-subtitle {
+  margin: 0.45rem 0 0;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.v2-page-subtitle strong {
+  color: #fff;
+}
+
+.internal-filter {
+  margin-bottom: 0;
+}
+
+/* Paneles legacy → v2 */
+.app-v2 .internal-page .panel,
+.app-v2 .internal-page .v2-panel,
+.app-v2 .admin-page .panel {
+  background: var(--v2-bg-card);
+  border: 1px solid var(--v2-border);
+  border-radius: var(--v2-radius);
+  padding: 1rem 1.15rem;
+  margin-bottom: 0;
+  box-shadow: none;
+}
+
+.app-v2 .internal-page .panel h3,
+.app-v2 .admin-page .panel h3,
+.app-v2 .internal-page .account-card-title {
+  margin: 0 0 0.85rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--v2-text);
+}
+
+.app-v2 .internal-page .panel p,
+.app-v2 .admin-page .panel p {
+  color: var(--v2-muted);
+}
+
+/* Stats */
+.app-v2 .stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.65rem;
+}
+
+.app-v2 .stat-card {
+  background: var(--v2-bg-card);
+  border: 1px solid var(--v2-border);
+  border-radius: var(--v2-radius-sm);
+  padding: 0.85rem 0.95rem;
+}
+
+.app-v2 .stat-label {
+  display: block;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--v2-muted);
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.app-v2 .stat-value {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--v2-gold);
+}
+
+.app-v2 .stat-card.hit .stat-value { color: #86efac; }
+.app-v2 .stat-card.miss .stat-value { color: #fca5a5; }
+.app-v2 .stat-card.pending .stat-value { color: #fdba74; }
+
+/* Tablas */
+.app-v2 .data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.app-v2 .data-table th,
+.app-v2 .data-table td {
+  padding: 0.55rem 0.65rem;
+  border-bottom: 1px solid var(--v2-border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.app-v2 .data-table th {
+  color: var(--v2-muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.app-v2 .table-wrap {
+  overflow-x: auto;
+  margin-top: 0.35rem;
+}
+
+/* Ranking / leaderboard */
+.app-v2 .leaderboard-panel .ranking-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin: 0 0 0.85rem;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.app-v2 .ranking-subtitle {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--v2-muted);
+}
+
+.app-v2 .leaderboard-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.app-v2 .leaderboard-item {
+  display: grid;
+  grid-template-columns: 2rem 1fr auto;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: var(--v2-radius-sm);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--v2-border);
+}
+
+.app-v2 .leaderboard-item.is-me {
+  border-color: rgba(255, 193, 7, 0.45);
+  background: rgba(255, 193, 7, 0.08);
+}
+
+.app-v2 .lb-rank {
+  font-weight: 800;
+  color: var(--v2-gold);
+  text-align: center;
+}
+
+.app-v2 .lb-user {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.app-v2 .lb-points {
+  font-weight: 700;
+  color: var(--v2-text);
+  white-space: nowrap;
+}
+
+.app-v2 .lb-points-total {
+  font-size: 0.78rem;
+  color: var(--v2-muted);
+  font-weight: 500;
+}
+
+/* Puntos / reglas */
+.app-v2 .my-points-card {
+  text-align: center;
+  padding: 1.25rem;
+}
+
+.app-v2 .my-points-card .hp-label {
+  display: block;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--v2-muted);
+  margin-bottom: 0.35rem;
+}
+
+.app-v2 .my-points-card .hp-value.lg {
+  display: block;
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--v2-gold);
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+.app-v2 .hp-ranking-summary,
+.app-v2 .hp-breakdown {
+  color: var(--v2-muted);
+  font-size: 0.88rem;
+}
+
+.app-v2 .hp-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.75rem;
+  text-align: left;
+}
+
+.app-v2 .hp-non-competitive {
+  color: var(--v2-muted);
+  opacity: 0.85;
+}
+
+.app-v2 .rules-box ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--v2-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.app-v2 .rules-box li strong,
+.app-v2 .rules-box h3 {
+  color: var(--v2-text);
+}
+
+.app-v2 .rules-item-with-icon {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* Referidos */
+.app-v2 .referral-link-card .referral-url-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+}
+
+.app-v2 .referral-url-input,
+.app-v2 input[type="text"],
+.app-v2 input[type="tel"],
+.app-v2 input[type="number"],
+.app-v2 input[type="email"],
+.app-v2 input[type="datetime-local"],
+.app-v2 select,
+.app-v2 textarea {
+  background: var(--v2-bg-elevated);
+  border: 1px solid var(--v2-border);
+  color: var(--v2-text);
+  border-radius: var(--v2-radius-sm);
+}
+
+.app-v2 .referral-rewards-list,
+.app-v2 .referral-user-list,
+.app-v2 .account-stats-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--v2-muted);
+}
+
+.app-v2 .referrals-footer-link,
+.app-v2 .wagers-footer-link {
+  margin-top: 0.25rem;
+}
+
+/* Yape */
+.app-v2 .yape-page-header h2,
+.app-v2 .yape-intro {
+  display: none;
+}
+
+.app-v2 .yape-package-card input:checked + .yape-package-inner,
+.app-v2 .yape-package-card:hover .yape-package-inner {
+  border-color: rgba(255, 193, 7, 0.55);
+  background: rgba(255, 193, 7, 0.08);
+}
+
+.app-v2 .yape-package-inner {
+  border: 1px solid var(--v2-border);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: var(--v2-radius-sm);
+}
+
+.app-v2 .yape-package-hp {
+  color: var(--v2-gold);
+}
+
+/* Cuenta */
+.app-v2 .account-details {
+  margin: 0;
+}
+
+.app-v2 .account-detail-row {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 0.5rem;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--v2-border);
+}
+
+.app-v2 .account-detail-row dt {
+  color: var(--v2-muted);
+  font-size: 0.82rem;
+}
+
+.app-v2 .account-detail-row dd {
+  margin: 0;
+  color: var(--v2-text);
+}
+
+.app-v2 .account-danger {
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+/* Legal */
+.app-v2 .legal-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.app-v2 .legal-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.app-v2 .legal-updated {
+  margin: 0;
+  color: var(--v2-muted);
+  font-size: 0.88rem;
+}
+
+.app-v2 .legal-section {
+  background: var(--v2-bg-card);
+  border: 1px solid var(--v2-border);
+  border-radius: var(--v2-radius);
+  padding: 1rem 1.15rem;
+}
+
+.app-v2 .legal-section h3 {
+  margin: 0 0 0.65rem;
+  font-size: 1rem;
+}
+
+.app-v2 .legal-section p,
+.app-v2 .legal-section li {
+  color: var(--v2-muted);
+  line-height: 1.55;
+}
+
+.app-v2 .legal-table th,
+.app-v2 .legal-table td {
+  border-color: var(--v2-border);
+}
+
+/* Admin */
+.app-v2 .admin-page-header,
+.app-v2 .admin-page-header-split {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1.15rem;
+  border-radius: var(--v2-radius);
+  background: linear-gradient(135deg, #5b21b6 0%, #6f42c1 45%, #9333ea 100%);
+  margin-bottom: 0.25rem;
+}
+
+.app-v2 .admin-page-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.app-v2 .admin-page-sub {
+  margin: 0.25rem 0 0;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.88rem;
+}
+
+.app-v2 .admin-users-tournament,
+.app-v2 .admin-points-filter {
+  margin-bottom: 0;
+}
+
+/* Match detail */
+.app-v2 .back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+  color: var(--v2-gold);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.app-v2 .back-link:hover {
+  text-decoration: underline;
+}
+
+.app-v2 .match-detail-header {
+  text-align: center;
+}
+
+.app-v2 .match-detail-teams {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin: 1rem 0;
+}
+
+.app-v2 .match-detail-score .score-final {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--v2-gold);
+}
+
+/* Verify phone */
+.app-v2 .verify-panel {
+  max-width: 480px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.app-v2 .verify-panel h2 {
+  margin: 0.75rem 0 0.35rem;
+}
+
+.app-v2 .verify-desc,
+.app-v2 .verify-hint {
+  color: var(--v2-muted);
+}
+
+.app-v2 .verify-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  text-align: left;
+}
+
+/* Alerts & empty */
+.app-v2 .alert {
+  border-radius: var(--v2-radius-sm);
+  border: 1px solid var(--v2-border);
+}
+
+.app-v2 .alert-success {
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.35);
+  color: #86efac;
+}
+
+.app-v2 .alert-error {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+}
+
+.app-v2 .empty-sm {
+  color: var(--v2-muted);
+  text-align: center;
+  padding: 1rem;
+}
+
+/* Footer */
+.app-v2 .site-footer {
+  background: var(--v2-bg-elevated);
+  border-top: 1px solid var(--v2-border);
+  color: var(--v2-muted);
+}
+
+.app-v2 .site-footer-link {
+  color: var(--v2-muted);
+}
+
+.app-v2 .site-footer-link:hover {
+  color: var(--v2-gold);
+}
+
+.app-v2 .pre-footer {
+  background: var(--v2-bg-card);
+  border-color: var(--v2-border);
+  color: var(--v2-muted);
+}
+
+/* Prize tier progress */
+.app-v2 .prize-tier-panel {
+  background: var(--v2-bg-card);
+  border: 1px solid var(--v2-border);
+  border-radius: var(--v2-radius);
+}
+
+.app-v2 .faq-item {
+  background: var(--v2-bg-card);
+  border: 1px solid var(--v2-border);
+  border-radius: var(--v2-radius);
+  padding: 1rem 1.15rem;
+}
+
+.app-v2 .faq-question {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  color: var(--v2-text);
+}
+
+.app-v2 .faq-answer p {
+  color: var(--v2-muted);
+  line-height: 1.55;
+}
+
+.app-v2 .error-page {
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.app-v2 .error-page-code {
+  font-size: 3rem;
+  font-weight: 800;
+  color: var(--v2-gold);
+  margin: 0;
+}
+
+.app-v2 .error-page-title {
+  margin: 0.5rem 0;
+  font-size: 1.35rem;
+}
+
+.app-v2 .error-page-message {
+  color: var(--v2-muted);
+}
+
+.app-v2 .error-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.app-v2 .yape-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.app-v2 a {
+  color: var(--v2-gold);
+}
+
+@media (max-width: 640px) {
+  .v2-page-hero {
+    flex-direction: column;
+    text-align: center;
+    padding: 1rem;
+  }
+
+  .app-v2 .account-detail-row {
+    grid-template-columns: 1fr;
+    gap: 0.15rem;
+  }
+}

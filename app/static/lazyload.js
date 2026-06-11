@@ -62,7 +62,7 @@
     if (!batchSize || batchSize < 1) batchSize = DEFAULT_BATCH;
 
     var deferred = Array.prototype.slice.call(
-      container.querySelectorAll('.match-row.lazy-deferred, .lazy-deferred-row')
+      container.querySelectorAll('.match-row.lazy-deferred, .match-card.lazy-deferred, .lazy-deferred-row')
     );
     if (!deferred.length) return;
 
@@ -71,6 +71,7 @@
     var btn = null;
     var sentinel = null;
     var listObserver = null;
+    var carousel = container.closest('[data-matches-carousel]');
 
     function remaining() {
       return deferred.length - nextIndex;
@@ -96,6 +97,10 @@
       }
       nextIndex = end;
       updateControls();
+      if (carousel && window.hfMatchesCarousel) {
+        var vp = carousel.querySelector('[data-carousel-viewport]');
+        if (vp) window.hfMatchesCarousel.updateArrows(carousel, vp);
+      }
       return nextIndex < deferred.length;
     }
 
@@ -106,7 +111,12 @@
     btn.className = 'btn btn-outline btn-sm lazy-load-more';
     btn.addEventListener('click', revealNextBatch);
     loadMoreWrap.appendChild(btn);
-    container.insertAdjacentElement('afterend', loadMoreWrap);
+
+    if (carousel) {
+      carousel.insertAdjacentElement('afterend', loadMoreWrap);
+    } else {
+      container.insertAdjacentElement('afterend', loadMoreWrap);
+    }
 
     sentinel = document.createElement('div');
     sentinel.className = 'lazy-sentinel';

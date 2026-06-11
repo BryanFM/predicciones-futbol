@@ -1,8 +1,10 @@
 {% extends "base.html" %}
+{% from "macros/page_v2.html" import internal_shell %}
 
 {% block title %}Reglas de Hamster puntos — Admin{% endblock %}
 
 {% block content %}
+{% call internal_shell() %}
 <section class="admin-page-header">
   <h2>Reglas de Hamster puntos</h2>
   <p class="admin-page-sub">Define cuántos HP se acreditan por cada dinámica. Los valores globales aplican a todos los torneos salvo que definas una excepción.</p>
@@ -26,7 +28,7 @@
   </label>
 </form>
 
-<div class="panel points-rules-grid">
+<div class="v2-panel points-rules-grid">
   {% for rule in rules %}
   <article class="points-rule-card">
     <h3>{{ rule.label }}</h3>
@@ -48,7 +50,7 @@
 </div>
 
 {% if selected_category_id %}
-<form method="post" action="/admin/puntos/recalcular-lideres" class="panel points-recalc-form">
+<form method="post" action="/admin/puntos/recalcular-lideres" class="v2-panel points-recalc-form">
   <h3>Líderes de grupo</h3>
   <p class="admin-page-sub">Calcula bonos de líder cuando todos los partidos de un grupo tienen resultado.</p>
   <input type="hidden" name="category_id" value="{{ selected_category_id }}">
@@ -56,7 +58,7 @@
 </form>
 {% endif %}
 
-<section class="panel">
+<section class="v2-panel">
   <h3>Referidos recientes</h3>
   {% if referrals %}
   <div class="table-wrap">
@@ -82,7 +84,7 @@
   {% endif %}
 </section>
 
-<section class="panel">
+<section class="v2-panel">
   <h3>Bonificaciones recientes</h3>
   {% if recent_bonuses %}
   <div class="table-wrap">
@@ -108,4 +110,5 @@
   <p class="empty-sm">Sin bonificaciones aún.</p>
   {% endif %}
 </section>
+{% endcall %}
 {% endblock %}

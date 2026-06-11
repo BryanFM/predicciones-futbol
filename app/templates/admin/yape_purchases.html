@@ -1,9 +1,11 @@
 {% extends "base.html" %}
 {% from "macros/user_avatar.html" import user_avatar %}
+{% from "macros/page_v2.html" import internal_shell %}
 
 {% block title %}Compras Yape — Admin{% endblock %}
 
 {% block content %}
+{% call internal_shell() %}
 <section class="admin-page-header admin-page-header-split">
   <div>
     <h2>Compras Yape</h2>
@@ -28,7 +30,7 @@
   <div class="stat-card miss"><span class="stat-label">Rechazadas</span><span class="stat-value">{{ stats.rejected }}</span></div>
 </div>
 
-<section class="panel yape-admin-register">
+<section class="v2-panel yape-admin-register">
   <h3>Registrar pago Yape y acreditar HP</h3>
   <p class="admin-page-sub">Usa esto si el usuario pagó pero no envió solicitud, o verificaste el pago directamente en tu app Yape.</p>
   <form method="post" action="/admin/compras-yape/registrar" class="yape-admin-register-form">
@@ -89,7 +91,7 @@
 {% endif %}
 
 {% if purchases %}
-<div class="panel yape-admin-list">
+<div class="v2-panel yape-admin-list">
   {% for p in purchases %}
   {% set user = users.get(p.user_id) %}
   {% set pkg = packages.get(p.package_id) %}
@@ -172,4 +174,5 @@
 {% else %}
 <p class="empty-sm">No hay solicitudes con este filtro.</p>
 {% endif %}
+{% endcall %}
 {% endblock %}

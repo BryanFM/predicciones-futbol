@@ -1,10 +1,12 @@
 {% extends "base.html" %}
 {% from "macros/team_flag.html" import team_flag %}
 {% from "macros/user_avatar.html" import user_avatar %}
+{% from "macros/page_v2.html" import internal_shell %}
 
 {% block title %}Usuarios — Admin{% endblock %}
 
 {% block content %}
+{% call internal_shell() %}
 <section class="admin-page-header admin-page-header-split">
   <div>
     <h2>Usuarios registrados</h2>
@@ -47,7 +49,7 @@
   <a href="/admin/usuarios?filter=unverified{% if selected_category_id %}&category_id={{ selected_category_id }}{% endif %}" class="chip {% if filter == 'unverified' %}active{% endif %}">Sin verificar</a>
 </div>
 
-<div class="panel table-panel">
+<div class="v2-panel table-panel">
   <div class="table-wrap">
     <table class="data-table">
       <thead>
@@ -158,4 +160,5 @@
     </table>
   </div>
 </div>
+{% endcall %}
 {% endblock %}

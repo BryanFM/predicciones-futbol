@@ -1,0 +1,122 @@
+{% from "macros/yape_promo_banner.html" import yape_promo_banner %}
+{% from "macros/countdown.html" import countdown %}
+{% from "macros/home_champion_panel.html" import home_champion_panel %}
+
+{% macro home_v2_summary(dashboard) %}
+{% if dashboard %}
+<section class="v2-panel">
+  <div class="v2-section-head">
+    <h2 class="v2-section-title">Tu resumen</h2>
+  </div>
+  <div class="v2-stats-grid">
+    <div class="v2-stat-card">
+      <div class="v2-stat-label">Ranking</div>
+      <div class="v2-stat-value">{% if dashboard.rank %}#{{ dashboard.rank }}{% else %}—{% endif %}</div>
+      <div class="v2-stat-delta">HP competitivos</div>
+    </div>
+    <div class="v2-stat-card">
+      <div class="v2-stat-label">Puntos competitivos</div>
+      <div class="v2-stat-value">{{ dashboard.points }} HP</div>
+      <div class="v2-stat-delta">Total: {{ dashboard.points_total }} HP</div>
+    </div>
+    <div class="v2-stat-card">
+      <div class="v2-stat-label">Marcadores exactos</div>
+      <div class="v2-stat-value">🎯 {{ dashboard.streak }}</div>
+    </div>
+    <div class="v2-stat-card">
+      <div class="v2-stat-label">Precisión</div>
+      <div class="v2-stat-value">{% if dashboard.has_accuracy %}{{ dashboard.accuracy }}%{% else %}—{% endif %}</div>
+      {% if dashboard.has_accuracy %}
+      <div class="v2-ring" style="--pct: {{ dashboard.accuracy }}" aria-hidden="true"></div>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endif %}
+{% endmacro %}
+
+{% macro home_v2_sidebar_dashboard(dashboard, current_user, show_top_link=true) %}
+{% if dashboard %}
+{% if show_top_link %}
+<section class="v2-panel">
+  <div class="v2-section-head">
+    <h2 class="v2-section-title">Top mundial</h2>
+    <a href="/ranking{% if dashboard.selected_category_id %}?category_id={{ dashboard.selected_category_id }}{% endif %}" class="v2-link-sm">Ver ranking →</a>
+  </div>
+  {% if dashboard.leaderboard %}
+  <ol class="v2-rank-list">
+    {% for u in dashboard.leaderboard %}
+    <li class="v2-rank-item {% if u.is_me %}is-me{% endif %}">
+      <span class="v2-rank-pos {% if loop.index <= 3 %}top{% endif %}">{{ u.rank }}</span>
+      {% if u.has_avatar %}
+      <img class="v2-rank-avatar" src="/avatars/{{ u.user_id }}?v=sm" alt="">
+      {% else %}
+      <img class="v2-rank-avatar" src="{{ static_url('hamster-32.png') }}" alt="">
+      {% endif %}
+      <span class="v2-rank-name">{{ u.name }}</span>
+      <span class="v2-rank-hp">{{ u.hp }} HP</span>
+    </li>
+    {% endfor %}
+  </ol>
+  {% else %}
+  <p class="v2-empty">Sin usuarios en el ranking todavía.</p>
+  {% endif %}
+</section>
+{% endif %}
+
+<section class="v2-panel">
+  <div class="v2-section-head">
+    <h2 class="v2-section-title">Tus referidos</h2>
+  </div>
+  {% if dashboard.friends %}
+  {% for f in dashboard.friends %}
+  <div class="v2-friend-item">
+    {% if f.has_avatar %}
+    <img class="v2-rank-avatar" src="/avatars/{{ f.user_id }}?v=sm" alt="">
+    {% else %}
+    <img class="v2-rank-avatar" src="{{ static_url('hamster-32.png') }}" alt="">
+    {% endif %}
+    <div class="v2-friend-meta">
+      <div class="v2-rank-name">{{ f.name }}</div>
+      <div class="v2-friend-league">{{ f.league }}</div>
+    </div>
+    <span class="v2-rank-hp">{{ f.hp }} HP</span>
+  </div>
+  {% endfor %}
+  {% else %}
+  <p class="v2-empty">{% if current_user %}Aún no tienes referidos verificados.{% else %}Inicia sesión para ver tus referidos.{% endif %}</p>
+  {% endif %}
+  <a href="/referidos" class="v2-btn-purple" style="margin-top: 0.75rem">+ Invitar amigos</a>
+</section>
+
+{% if dashboard.achievements %}
+<section class="v2-panel">
+  <div class="v2-section-head">
+    <h2 class="v2-section-title">Logros</h2>
+  </div>
+  <div class="v2-achievements">
+    {% for a in dashboard.achievements %}
+    <div class="v2-achievement" title="{{ a.label }}">{{ a.icon }}</div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+{% endif %}
+{% endmacro %}
+
+{% macro home_v2_sidebar(dashboard, current_user, request, countdown_ms=none, countdown_label='', selected_category=none, selected_category_id=none, tournament_teams=none, my_champion=none, champion_open=false, champion_deadline=none, champion_stats=none, show_top_link=true) %}
+<aside class="v2-sidebar">
+
+  <div class="app-v2-yape-wrap">
+    {{ yape_promo_banner(request, current_user) }}
+  </div>
+
+  <div class="app-v2-champion-wrap" data-swap-target="home-champion">
+    {{ home_champion_panel(selected_category, selected_category_id, tournament_teams or [], my_champion, champion_open, champion_deadline, champion_stats, current_user) }}
+  </div>
+
+  <div id="home-sidebar-dashboard" data-swap-target="home-sidebar-dashboard">
+    {{ home_v2_sidebar_dashboard(dashboard, current_user, show_top_link) }}
+  </div>
+</aside>
+{% endmacro %}

@@ -1,81 +1,64 @@
 {% extends "base.html" %}
+{% from "macros/page_v2.html" import internal_shell, page_hero, tournament_filter_form %}
 
 {% block title %}Historial de mis puntos — Hamster Fijas{% endblock %}
 {% block meta_description %}Revisa todos los movimientos de tus Hamster puntos: aciertos, bonos, compras y apuestas.{% endblock %}
 {% block meta_robots %}noindex{% endblock %}
 
 {% block content %}
-<section class="points-history-page">
-  <header class="referrals-header">
-    <h2>📒 Historial de mis puntos</h2>
-    <p class="referrals-sub">Todos los movimientos de tus Hamster puntos: ganados, comprados, bonos y apuestas.</p>
-  </header>
+{% call internal_shell() %}
+{{ page_hero('📒 Historial de mis puntos', 'Todos los movimientos de tus Hamster puntos: ganados, comprados, bonos y apuestas.') }}
+{{ tournament_filter_form('/mis-puntos', categories, selected_category_id) }}
 
-  {% if categories|length > 1 %}
-  <form class="filters-form points-filter" method="get" action="/mis-puntos">
-    <label>Torneo
-      <select name="category_id" class="filter-select" onchange="this.form.submit()">
-        {% for cat in categories %}
-        <option value="{{ cat.id }}" {% if cat.id == selected_category_id %}selected{% endif %}>{{ cat.name }}</option>
-        {% endfor %}
-      </select>
-    </label>
-  </form>
-  {% endif %}
-
-  <div class="stats-grid stats-compact">
-    <div class="stat-card hit"><span class="stat-label">HP totales</span><span class="stat-value">{{ points.total }}</span></div>
-    <div class="stat-card"><span class="stat-label">Aciertos</span><span class="stat-value">+{{ points.score_points + points.champion_points }}</span></div>
-    <div class="stat-card"><span class="stat-label">Bonos y compras</span><span class="stat-value">+{{ points.bonus_points + points.purchased_points }}</span></div>
-    <div class="stat-card {% if points.wager_net < 0 %}miss{% elif points.wager_net > 0 %}hit{% endif %}">
-      <span class="stat-label">Apuestas (neto)</span>
-      <span class="stat-value">{{ '+' if points.wager_net > 0 }}{{ points.wager_net }}</span>
-    </div>
-    <div class="stat-card pending"><span class="stat-label">HP en juego</span><span class="stat-value">{{ points.wager_pending_stake }}</span></div>
+<div class="stats-grid stats-compact">
+  <div class="stat-card hit"><span class="stat-label">HP totales</span><span class="stat-value">{{ points.total }}</span></div>
+  <div class="stat-card"><span class="stat-label">Aciertos</span><span class="stat-value">+{{ points.score_points + points.champion_points }}</span></div>
+  <div class="stat-card"><span class="stat-label">Bonos y compras</span><span class="stat-value">+{{ points.bonus_points + points.purchased_points }}</span></div>
+  <div class="stat-card {% if points.wager_net < 0 %}miss{% elif points.wager_net > 0 %}hit{% endif %}">
+    <span class="stat-label">Apuestas (neto)</span>
+    <span class="stat-value">{{ '+' if points.wager_net > 0 }}{{ points.wager_net }}</span>
   </div>
+  <div class="stat-card pending"><span class="stat-label">HP en juego</span><span class="stat-value">{{ points.wager_pending_stake }}</span></div>
+</div>
 
-  <section class="panel">
-    <h3>Movimientos</h3>
-    {% if history %}
-    <div class="table-wrap">
-      <table class="data-table points-history-table">
-        <thead>
-          <tr>
-            <th>Fecha</th>
-            <th>Movimiento</th>
-            <th>Detalle</th>
-            <th class="points-hp-col">HP</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for e in history %}
-          <tr>
-            <td>{{ format_pet(e.date) if e.date else '—' }}</td>
-            <td>{{ e.icon }} {{ e.label }}</td>
-            <td>{{ e.detail or '—' }}</td>
-            <td class="points-hp-col">
-              {% if e.kind == 'wager_pending' %}
-              <span class="badge badge-pending">{{ e.pending_stake }} HP en juego</span>
-              {% elif e.hp > 0 %}
-              <span class="points-hp-pos">+{{ e.hp }}</span>
-              {% elif e.hp < 0 %}
-              <span class="points-hp-neg">{{ e.hp }}</span>
-              {% else %}
-              —
-              {% endif %}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    {% else %}
-    <p>Aún no tienes movimientos de HP en este torneo. Registra predicciones, invita amigos o apuesta para empezar.</p>
-    {% endif %}
-  </section>
-
-  <p class="wagers-footer-link">
-    <a href="/apuestas{% if selected_category_id %}?category_id={{ selected_category_id }}{% endif %}" class="btn btn-primary btn-sm">Ir a apostar HP</a>
-  </p>
+<section class="v2-panel">
+  <h3>Movimientos</h3>
+  {% if history %}
+  <div class="table-wrap">
+    <table class="data-table points-history-table">
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Movimiento</th>
+          <th>Detalle</th>
+          <th class="points-hp-col">HP</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in history %}
+        <tr>
+          <td>{{ format_pet(e.date) if e.date else '—' }}</td>
+          <td>{{ e.icon }} {{ e.label }}</td>
+          <td>{{ e.detail or '—' }}</td>
+          <td class="points-hp-col">
+            {% if e.kind == 'wager_pending' %}
+            <span class="badge badge-pending">{{ e.pending_stake }} HP en juego</span>
+            {% elif e.hp > 0 %}
+            <span class="points-hp-pos">+{{ e.hp }}</span>
+            {% elif e.hp < 0 %}
+            <span class="points-hp-neg">{{ e.hp }}</span>
+            {% else %}
+            —
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p>Aún no tienes movimientos de HP en este torneo. Registra predicciones, invita amigos o apuesta para empezar.</p>
+  {% endif %}
 </section>
+{% endcall %}
 {% endblock %}

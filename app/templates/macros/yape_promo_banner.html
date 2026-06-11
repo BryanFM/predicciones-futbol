@@ -13,7 +13,7 @@
     <div class="yape-promo-banner-actions">
       {% if current_user and current_user.phone_verified %}
       <a href="/comprar-yape{% if cat_qs %}?category_id={{ cat_qs }}{% endif %}" class="btn btn-primary btn-sm">Yapear y ganar HP</a>
-      <a href="/proximamente{% if cat_qs %}?category_id={{ cat_qs }}{% endif %}" class="btn btn-outline btn-sm">Ver ranking</a>
+      <a href="/ranking{% if cat_qs %}?category_id={{ cat_qs }}{% endif %}" class="btn btn-outline btn-sm">Ver ranking</a>
       {% elif current_user %}
       <a href="/verificar-telefono" class="btn btn-primary btn-sm">Verificar celular</a>
       {% else %}

@@ -1,0 +1,30 @@
+{% from "macros/match_card.html" import match_card %}
+
+{% macro home_matches_body(matches, current_user, user_wagers_by_match, match_outcome_stats) %}
+{% if not matches %}
+<p class="v2-empty">No hay partidos con estos filtros.</p>
+{% else %}
+<div class="matches-carousel" data-matches-carousel>
+  <button type="button" class="matches-carousel-arrow matches-carousel-arrow--prev" data-carousel-prev aria-label="Partido anterior">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+  </button>
+
+  <div class="matches-carousel-viewport" data-carousel-viewport>
+    <div class="matches-carousel-track">
+      {% for match in matches %}
+      {% set score_pred = match_user_score(match, current_user) %}
+      {% set outcome_pred = match_user_outcome(match, current_user) %}
+      {% set my_wager = user_wagers_by_match.get(match.id) if user_wagers_by_match else none %}
+      {% set has_mine = user_has_predictions(match, current_user) %}
+      {% set outcome = match_outcome_stats.get(match.id, {}) %}
+      {{ match_card(match, current_user, score_pred, outcome_pred, my_wager, has_mine, outcome) }}
+      {% endfor %}
+    </div>
+  </div>
+
+  <button type="button" class="matches-carousel-arrow matches-carousel-arrow--next" data-carousel-next aria-label="Partido siguiente">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+  </button>
+</div>
+{% endif %}
+{% endmacro %}

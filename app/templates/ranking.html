@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% from "macros/tournament_icon.html" import tournament_icon %}
+{% from "macros/prize_tier_progress.html" import prize_tier_progress %}
+{% from "macros/home_v2_sections.html" import home_v2_summary, home_v2_sidebar %}
+{% from "macros/ranking_leaderboard.html" import ranking_leaderboard %}
+{% from "macros/page_v2.html" import tournament_filter_form %}
+
+{% block title %}Ranking — Hamster Fijas{% endblock %}
+{% block meta_description %}Ranking de Hamster puntos del Mundial 2026. Consulta reglas, premios y tu posición en la clasificación.{% endblock %}
+
+{% block main_class %}app-v2-main{% endblock %}
+{% block yape_banner %}{% endblock %}
+
+{% block head_scripts %}
+{% if countdown_ms %}
+<script src="{{ static_url('countdown.js') }}" defer></script>
+{% endif %}
+<script src="{{ static_url('champion-form.js') }}" defer></script>
+{% endblock %}
+
+{% block content %}
+<div class="app-v2-shell">
+
+  {% if not current_user %}
+  <section class="v2-panel app-v2-login-cta">
+    <img data-src="{{ static_url('hamster-120.png') }}" alt="Hamster Fijas" class="cta-img v2-hero-mascot" width="96" height="96">
+    <div>
+      <h2 class="app-v2-login-title">¡Únete al ranking!</h2>
+      <p class="app-v2-muted">Inicia sesión con Google para acumular Hamster puntos y competir por el podio.</p>
+      <a href="/auth/login" class="btn btn-google v2-btn-google">
+        <span class="btn-google-label">Entrar con Google</span>
+        <span class="btn-google-label-short">Entrar</span>
+      </a>
+    </div>
+  </section>
+  {% endif %}
+
+  {% if current_user and not current_user.phone_verified %}
+  <section class="v2-panel app-v2-verify">
+    <p>📱 <strong>Verifica tu celular</strong> para sumar puntos al ranking.</p>
+    <a href="/verificar-telefono" class="v2-btn-primary btn-sm">Verificar ahora</a>
+  </section>
+  {% endif %}
+
+  <section class="v2-hero">
+    <div class="v2-hero-content">
+      <p class="v2-hero-kicker">{{ selected_category.name if selected_category else 'Mundial 2026' }}</p>
+      <h1 class="v2-hero-title">RANKING<br>COMPITE POR EL PODIO</h1>
+    </div>
+    <img src="{{ static_url('hamster-80.png') }}" alt="" class="v2-hero-mascot" width="120" height="120">
+  </section>
+
+  <div class="v2-layout app-v2-layout">
+    <div class="v2-main">
+      {% if categories|length > 1 %}
+      {{ tournament_filter_form('/ranking', categories, selected_category_id) }}
+      {% elif selected_category %}
+      <section class="v2-panel filters-panel filters-compact">
+        <span class="section-meta tournament-label app-v2-tournament-meta">
+          {{ tournament_icon(selected_category, 'xs') }}
+          <span>{{ selected_category.name }}</span>
+        </span>
+      </section>
+      {% endif %}
+
+      {% if current_user %}
+      {{ home_v2_summary(home_dashboard) }}
+      {% endif %}
+
+      {% if current_user and my_points %}
+      <section class="v2-panel my-points-card">
+        <div class="v2-section-head">
+          <h2 class="v2-section-title">Tus Hamster puntos</h2>
+          <span class="v2-link-sm">{{ my_points.competitive }} HP competitivos</span>
+        </div>
+        <div class="v2-stats-grid ranking-hp-grid">
+          <div class="v2-stat-card">
+            <div class="v2-stat-label">HP totales</div>
+            <div class="v2-stat-value">{{ my_points.total }}</div>
+          </div>
+          <div class="v2-stat-card">
+            <div class="v2-stat-label">Marcadores</div>
+            <div class="v2-stat-value">{{ my_points.score_points }}</div>
+            <div class="v2-stat-delta">{{ my_points.score_hits }} aciertos</div>
+          </div>
+          <div class="v2-stat-card">
+            <div class="v2-stat-label">Campeón</div>
+            <div class="v2-stat-value">{{ my_points.champion_points }}</div>
+          </div>
+          <div class="v2-stat-card">
+            <div class="v2-stat-label">Bonos / Yape</div>
+            <div class="v2-stat-value">{{ my_points.purchased_points + my_points.bonus_points }}</div>
+          </div>
+        </div>
+      </section>
+      {% endif %}
+
+      <section class="v2-panel ranking-panel">
+        <div class="v2-section-head">
+          <h2 class="v2-section-title">Clasificación</h2>
+          <span class="v2-link-sm">Por HP de aciertos</span>
+        </div>
+        {{ ranking_leaderboard(leaderboard, current_user) }}
+      </section>
+
+      <section class="v2-panel rules-box">
+        <div class="v2-section-head">
+          <h2 class="v2-section-title">¿Cómo se ganan?</h2>
+        </div>
+        <ul>
+          <li>⚽ Marcador exacto acertado → <strong>{{ hp_rules.score_hit }} Hamster puntos</strong></li>
+          <li class="rules-item-with-icon">
+            {{ tournament_icon(selected_category, 'xs') }}
+            Campeón del torneo acertado → <strong>{{ hp_rules.champion_hit }} Hamster puntos</strong>
+          </li>
+          <li>👥 Invita amigos → <strong>+{{ hp_rules.referral_referrer }} HP</strong> por invitado verificado (<a href="/referidos">tu enlace</a>)</li>
+          <li>🏆 Líder de grupo → <strong>+{{ hp_rules.group_leader }} HP</strong> (más aciertos en fase de grupos)</li>
+          <li>🔒 La predicción de campeón cierra al finalizar la fase de grupos del torneo</li>
+          {% if YAPE_PAYMENTS_ENABLED %}
+          <li>💜 Compra HP extra con Yape (QR oficial)</li>
+          {% endif %}
+          <li>🏅 Solo los HP ganados por aciertos cuentan para el podio.</li>
+          <li>🎟 Cada <strong>50 HP totales</strong> = 1 ticket del sorteo</li>
+          <li>⚖️ Desempate: 1) más marcadores exactos, 2) acertó el campeón, 3) registro más antiguo</li>
+        </ul>
+      </section>
+
+      {{ prize_tier_progress(current_tier, next_tier, verified_count, progreso, locked_tiers, is_max_tier, true) }}
+
+      <p class="ranking-footer-link">
+        <a href="/" class="btn btn-primary btn-sm">← Ir a predicciones</a>
+      </p>
+    </div>
+
+    {{ home_v2_sidebar(
+      home_dashboard,
+      current_user,
+      request,
+      countdown_ms,
+      countdown_label,
+      selected_category=selected_category,
+      selected_category_id=selected_category_id,
+      tournament_teams=tournament_teams,
+      my_champion=my_champion,
+      champion_open=champion_open,
+      champion_deadline=champion_deadline,
+      champion_stats=champion_stats,
+      show_top_link=false
+    ) }}
+  </div>
+</div>
+{% endblock %}

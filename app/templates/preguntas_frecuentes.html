@@ -1,13 +1,13 @@
 {% extends "base.html" %}
+{% from "macros/page_v2.html" import internal_shell, page_hero %}
 
 {% block title %}Preguntas frecuentes — Hamster Fijas{% endblock %}
 {% block meta_description %}Respuestas a dudas sobre Hamster Fijas: contacto, premios, verificación de celular y Hamster puntos.{% endblock %}
 
 {% block content %}
+{% call internal_shell() %}
+{{ page_hero('Preguntas frecuentes', 'Hamster Fijas — Mundial 2026') }}
 <div class="legal-page faq-page">
-  <h2 class="legal-title">Preguntas frecuentes</h2>
-  <p class="legal-updated">Hamster Fijas — Mundial 2026</p>
-
   <section class="faq-list">
     <article class="faq-item">
       <h3 class="faq-question">¿Cómo me contactan si soy ganador?</h3>
@@ -60,4 +60,5 @@
     ¿Necesitas más ayuda? Revisa la sección <a href="/#contacto">Contáctanos</a> al pie del sitio.
   </p>
 </div>
+{% endcall %}
 {% endblock %}

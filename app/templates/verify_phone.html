@@ -1,10 +1,12 @@
 {% extends "base.html" %}
+{% from "macros/page_v2.html" import internal_shell %}
 
 {% block title %}Verificar teléfono — Hamster Fijas{% endblock %}
 
 {% block content %}
 {% set raw_phone = pending_phone or current_user.phone_number or '' %}
-<section class="panel verify-panel">
+{% call internal_shell() %}
+<section class="v2-panel verify-panel">
   <img src="{{ static_url('hamster-80.png') }}" alt="" class="verify-img" width="80" height="80" loading="lazy" decoding="async">
   <h2>Verifica tu celular</h2>
   <p class="verify-desc">Para participar en predicciones necesitas confirmar tu número. Te enviaremos un código por SMS.</p>
@@ -42,5 +44,6 @@
 
   <p class="verify-hint">Ingresa los <strong>9 dígitos</strong> de tu celular. El SMS se envía a <strong>+51</strong> + tu número.</p>
 </section>
+{% endcall %}
 <script src="{{ static_url('verify-phone.js') }}" defer></script>
 {% endblock %}

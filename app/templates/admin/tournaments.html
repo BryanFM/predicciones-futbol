@@ -1,8 +1,10 @@
 {% extends "base.html" %}
+{% from "macros/page_v2.html" import internal_shell %}
 
 {% block title %}Torneos — Admin{% endblock %}
 
 {% block content %}
+{% call internal_shell() %}
 <section class="admin-page-header">
   <h2>Gestión de torneos</h2>
 </section>
@@ -14,7 +16,7 @@
 <div class="alert alert-error">{{ request.query_params.get('error') }}</div>
 {% endif %}
 
-<section class="panel">
+<section class="v2-panel">
   <h3>Nuevo torneo</h3>
   <form class="grid-form" method="post" action="/admin/torneos">
     <label>Nombre<input type="text" name="name" required placeholder="Liga 1, Champions League…"></label>
@@ -27,7 +29,7 @@
   </form>
 </section>
 
-<section class="panel">
+<section class="v2-panel">
   <h3>Torneos registrados ({{ tournaments|length }})</h3>
   <div class="table-wrap">
     <table class="data-table">
@@ -89,4 +91,5 @@
     </table>
   </div>
 </section>
+{% endcall %}
 {% endblock %}

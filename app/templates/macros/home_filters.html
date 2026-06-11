@@ -1,0 +1,38 @@
+{% macro home_filters_form(categories, selected_category_id, available_dates, selected_match_date, available_groups, selected_group, matches_count) %}
+<form class="filters-form-compact" id="home-filters-form" method="get" action="/" data-home-filters>
+  {% if categories|length > 1 %}
+  <label class="filter-select-field filter-select-tournament">
+    <span class="filter-select-label">Torneo</span>
+    <select name="category_id" class="filter-select" data-home-filter>
+      {% for cat in categories %}
+      <option value="{{ cat.id }}" {% if cat.id == selected_category_id %}selected{% endif %}>{{ cat.name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  {% else %}
+  <input type="hidden" name="category_id" value="{{ selected_category_id }}">
+  {% endif %}
+
+  <label class="filter-select-field">
+    <span class="filter-select-label">Fecha</span>
+    <select name="match_date" class="filter-select" data-home-filter>
+      <option value="" {% if not selected_match_date %}selected{% endif %}>Todas las fechas</option>
+      {% for d in available_dates %}
+      <option value="{{ d.isoformat() }}" {% if selected_match_date == d.isoformat() %}selected{% endif %}>{{ d.strftime('%d/%m/%Y') }}</option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <label class="filter-select-field{% if not available_groups %} hidden{% endif %}" data-home-filter-group-wrap>
+    <span class="filter-select-label">Grupo</span>
+    <select name="group" class="filter-select" data-home-filter>
+      <option value="" {% if not selected_group %}selected{% endif %}>Todos los grupos</option>
+      {% for g in available_groups %}
+      <option value="{{ g }}" {% if selected_group == g %}selected{% endif %}>Grupo {{ g }}</option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <span class="filters-count" data-home-filters-count>{{ matches_count }} partido{{ 's' if matches_count != 1 else '' }}</span>
+</form>
+{% endmacro %}

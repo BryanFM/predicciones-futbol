@@ -1,90 +1,88 @@
 {% extends "base.html" %}
 {% from "macros/user_avatar.html" import user_avatar %}
+{% from "macros/page_v2.html" import internal_shell, page_hero %}
 
 {% block title %}Configuración de cuenta — Hamster Fijas{% endblock %}
 
 {% block content %}
-<section class="account-page">
-  <header class="account-page-header">
-    <h2>Configuración de cuenta</h2>
-    <p class="account-page-sub">Administra tu perfil y tus datos en Hamster Fijas.</p>
-  </header>
+{% call internal_shell() %}
+{{ page_hero('Configuración de cuenta', 'Administra tu perfil y tus datos en Hamster Fijas.') }}
 
-  <section class="panel account-card">
-    <h3 class="account-card-title">Tu perfil</h3>
-    <div class="account-profile">
-      {% if current_user.picture %}
-      {{ user_avatar(current_user, 'avatar avatar-lg', 'lg') }}
-      {% endif %}
-      <dl class="account-details">
-        <div class="account-detail-row">
-          <dt>Nombre</dt>
-          <dd>{{ current_user.name }}</dd>
-        </div>
-        <div class="account-detail-row">
-          <dt>Correo</dt>
-          <dd>{{ current_user.email }}</dd>
-        </div>
-        <div class="account-detail-row">
-          <dt>Celular</dt>
-          <dd>
-            {% if current_user.phone_verified and current_user.phone_number %}
-              {% if current_user.phone_number.startswith('+51') %}
-                +51 {{ current_user.phone_number[3:] }}
-              {% else %}
-                {{ current_user.phone_number }}
-              {% endif %}
-              <span class="badge badge-hit badge-sm">✓ Verificado</span>
-            {% elif current_user.phone_number %}
-              {{ current_user.phone_number }}
-              <span class="badge badge-pending badge-sm">Sin verificar</span>
-            {% else %}
-              <span class="account-muted">No registrado</span>
-            {% endif %}
-          </dd>
-        </div>
-        <div class="account-detail-row">
-          <dt>Miembro desde</dt>
-          <dd>{{ format_pet(current_user.created_at) }}</dd>
-        </div>
-        {% if current_user.is_admin %}
-        <div class="account-detail-row">
-          <dt>Rol</dt>
-          <dd><span class="admin-badge">admin</span></dd>
-        </div>
-        {% endif %}
-      </dl>
-    </div>
-  </section>
-
-  <section class="panel account-card">
-    <h3 class="account-card-title">Actividad</h3>
-    <ul class="account-stats-list">
-      <li><span>Predicciones de marcador</span><strong>{{ prediction_count }}</strong></li>
-      <li><span>Predicciones de campeón</span><strong>{{ champion_count }}</strong></li>
-    </ul>
-    {% if not current_user.phone_verified %}
-    <p class="account-hint"><a href="/verificar-telefono">Verifica tu celular</a> para participar en predicciones.</p>
+<section class="v2-panel account-card">
+  <h3 class="account-card-title">Tu perfil</h3>
+  <div class="account-profile">
+    {% if current_user.picture %}
+    {{ user_avatar(current_user, 'avatar avatar-lg', 'lg') }}
     {% endif %}
-  </section>
-
-  <section class="panel account-card account-danger">
-    <h3 class="account-card-title">Zona de peligro</h3>
-    <p class="account-danger-text">
-      Al eliminar tu cuenta se borrarán de forma permanente tu perfil, predicciones, puntos y verificación de celular.
-      Conservamos solo un <strong>registro anonimizado</strong> (fecha, ID interno y huella irreversible de tu correo)
-      para trazabilidad legal, sin nombre ni celular.
-      Esta acción no se puede deshacer.
-      <a href="/privacidad#derechos">Más información sobre tus derechos</a>.
-    </p>
-    <form class="account-delete-form" method="post" action="/cuenta/eliminar">
-      <label class="account-delete-label">
-        Escribe <strong>{{ "ELIMINAR" }}</strong> para confirmar
-        <input type="text" name="confirm" class="account-delete-input" required autocomplete="off"
-               placeholder="ELIMINAR" aria-label="Confirmación: escribe ELIMINAR">
-      </label>
-      <button type="submit" class="btn btn-danger">Eliminar mi cuenta permanentemente</button>
-    </form>
-  </section>
+    <dl class="account-details">
+      <div class="account-detail-row">
+        <dt>Nombre</dt>
+        <dd>{{ current_user.name }}</dd>
+      </div>
+      <div class="account-detail-row">
+        <dt>Correo</dt>
+        <dd>{{ current_user.email }}</dd>
+      </div>
+      <div class="account-detail-row">
+        <dt>Celular</dt>
+        <dd>
+          {% if current_user.phone_verified and current_user.phone_number %}
+            {% if current_user.phone_number.startswith('+51') %}
+              +51 {{ current_user.phone_number[3:] }}
+            {% else %}
+              {{ current_user.phone_number }}
+            {% endif %}
+            <span class="badge badge-hit badge-sm">✓ Verificado</span>
+          {% elif current_user.phone_number %}
+            {{ current_user.phone_number }}
+            <span class="badge badge-pending badge-sm">Sin verificar</span>
+          {% else %}
+            <span class="account-muted">No registrado</span>
+          {% endif %}
+        </dd>
+      </div>
+      <div class="account-detail-row">
+        <dt>Miembro desde</dt>
+        <dd>{{ format_pet(current_user.created_at) }}</dd>
+      </div>
+      {% if current_user.is_admin %}
+      <div class="account-detail-row">
+        <dt>Rol</dt>
+        <dd><span class="admin-badge">admin</span></dd>
+      </div>
+      {% endif %}
+    </dl>
+  </div>
 </section>
+
+<section class="v2-panel account-card">
+  <h3 class="account-card-title">Actividad</h3>
+  <ul class="account-stats-list">
+    <li><span>Predicciones de marcador</span><strong>{{ prediction_count }}</strong></li>
+    <li><span>Predicciones de campeón</span><strong>{{ champion_count }}</strong></li>
+  </ul>
+  {% if not current_user.phone_verified %}
+  <p class="account-hint"><a href="/verificar-telefono">Verifica tu celular</a> para participar en predicciones.</p>
+  {% endif %}
+</section>
+
+<section class="v2-panel account-card account-danger">
+  <h3 class="account-card-title">Zona de peligro</h3>
+  <p class="account-danger-text">
+    Al eliminar tu cuenta se borrarán de forma permanente tu perfil, predicciones, puntos y verificación de celular.
+    Conservamos solo un <strong>registro anonimizado</strong> (fecha, ID interno y huella irreversible de tu correo)
+    para trazabilidad legal, sin nombre ni celular.
+    Esta acción no se puede deshacer.
+    <a href="/privacidad#derechos">Más información sobre tus derechos</a>.
+  </p>
+  <form class="account-delete-form" method="post" action="/cuenta/eliminar">
+    <label class="account-delete-label">
+      Escribe <strong>{{ "ELIMINAR" }}</strong> para confirmar
+      <input type="text" name="confirm" class="account-delete-input" required autocomplete="off"
+             placeholder="ELIMINAR" aria-label="Confirmación: escribe ELIMINAR">
+    </label>
+    <button type="submit" class="btn btn-danger">Eliminar mi cuenta permanentemente</button>
+  </form>
+</section>
+{% endcall %}
 {% endblock %}

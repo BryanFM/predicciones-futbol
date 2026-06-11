@@ -1,8 +1,10 @@
 {% extends "base.html" %}
+{% from "macros/page_v2.html" import internal_shell %}
 
 {% block title %}Bajas de cuenta — Admin{% endblock %}
 
 {% block content %}
+{% call internal_shell() %}
 <section class="admin-page-header admin-page-header-split">
   <div>
     <h2>Bajas de cuenta</h2>
@@ -15,7 +17,7 @@
   <div class="stat-card"><span class="stat-label">Total de bajas</span><span class="stat-value">{{ total }}</span></div>
 </div>
 
-<div class="panel table-panel">
+<div class="v2-panel table-panel">
   <div class="table-wrap">
     <table class="data-table">
       <thead>
@@ -56,4 +58,5 @@
   La huella de email es un hash SHA-256 irreversible. Sirve para detectar re-registros del mismo correo,
   sin almacenar el email en texto claro.
 </p>
+{% endcall %}
 {% endblock %}

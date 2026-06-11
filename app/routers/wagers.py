@@ -10,17 +10,13 @@ from sqlalchemy.orm import Session
 from app.auth import require_verified
 from app.database import get_db
 from app.hf_response import ajax_error, ajax_or_redirect, safe_back
-from app.models import Category, Match, PointWager, User, WagerStatus
+from app.models import Category, Match, PointWager, User
 from app.points import points_history, user_hamster_points
 from app.rendering import render
-from app.timezone import peru_now
 from app.wagers import (
-    MAX_STAKE,
-    MIN_STAKE,
     WAGER_PICKS,
     cancel_wager,
     place_wager,
-    user_wagers,
     wager_balance,
 )
 
@@ -35,52 +31,10 @@ def _selected_category(db: Session, category_id: Optional[int]) -> tuple[list[Ca
     return categories, selected
 
 
-@router.get("/apuestas", response_class=HTMLResponse)
-def wagers_page(
-    request: Request,
-    category_id: Optional[int] = None,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_verified),
-):
-    categories, selected = _selected_category(db, category_id)
-
-    open_matches = (
-        db.query(Match)
-        .filter(
-            Match.category_id == selected,
-            Match.home_score.is_(None),
-            Match.match_date > peru_now(),
-        )
-        .order_by(Match.match_date)
-        .limit(40)
-        .all()
-        if selected
-        else []
-    )
-    open_matches = [m for m in open_matches if m.predictions_open]
-
-    my_wagers = user_wagers(db, current_user.id, selected)
-    pending_match_ids = {w.match_id for w in my_wagers if w.status == WagerStatus.PENDING}
-    balance = wager_balance(db, current_user.id, selected)
-
-    return render(
-        "wagers/index.html",
-        {
-            "categories": categories,
-            "selected_category_id": selected,
-            "open_matches": open_matches,
-            "my_wagers": my_wagers,
-            "pending_match_ids": pending_match_ids,
-            "balance": balance,
-            "picks": WAGER_PICKS,
-            "min_stake": MIN_STAKE,
-            "max_stake": MAX_STAKE,
-            "WagerStatus": WagerStatus,
-        },
-        request=request,
-        db=db,
-        current_user=current_user,
-    )
+@router.get("/apuestas", include_in_schema=False)
+def apuestas_redirect(category_id: Optional[int] = None):
+    qs = f"?category_id={category_id}" if category_id else ""
+    return RedirectResponse(f"/{qs}", status_code=301)
 
 
 @router.post("/apuestas")
@@ -150,7 +104,7 @@ def remove_wager(
         return_to,
         home_url(cat_id, return_match_date.strip() or None, return_group.strip() or None)
         if cat_id
-        else "/apuestas",
+        else "/mis-puntos",
     )
     try:
         wager = db.get(PointWager, wager_id)

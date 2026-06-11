@@ -1,0 +1,44 @@
+{% from "macros/home_filters.html" import home_filters_form %}
+{% from "macros/home_matches_body.html" import home_matches_body %}
+{% from "macros/home_v2_sections.html" import home_v2_summary, home_v2_sidebar_dashboard %}
+{% from "macros/home_champion_panel.html" import home_champion_panel %}
+{% from "macros/tournament_icon.html" import tournament_icon %}
+
+<div data-home-filter-fragment>
+  <div data-swap-target="home-filters">
+    {{ home_filters_form(categories, selected_category_id, available_dates, selected_match_date, available_groups, selected_group, matches|length) }}
+  </div>
+
+  <div data-swap-target="home-matches-meta">
+    {% if selected_category %}
+    <span class="section-meta tournament-label home-v2-tournament-meta" data-home-matches-meta>
+      {{ tournament_icon(selected_category, 'xs') }}
+      <span>
+        {{ selected_category.name }}
+        {% if selected_match_date %} · {{ selected_match_date }}{% endif %}
+        {% if selected_group %} · Grupo {{ selected_group }}{% endif %}
+      </span>
+    </span>
+    {% endif %}
+  </div>
+
+  <div data-swap-target="home-hero-kicker" hidden>
+    {{ selected_category.name if selected_category else 'Mundial 2026' }}
+  </div>
+
+  <div data-swap-target="home-matches-body">
+    {{ home_matches_body(matches, current_user, user_wagers_by_match, match_outcome_stats) }}
+  </div>
+
+  <div data-swap-target="home-summary">
+    {% if current_user %}{{ home_v2_summary(home_dashboard) }}{% endif %}
+  </div>
+
+  <div data-swap-target="home-sidebar-dashboard">
+    {{ home_v2_sidebar_dashboard(home_dashboard, current_user) }}
+  </div>
+
+  <div data-swap-target="home-champion">
+    {{ home_champion_panel(selected_category, selected_category_id, tournament_teams, my_champion, champion_open, champion_deadline, champion_stats, current_user) }}
+  </div>
+</div>

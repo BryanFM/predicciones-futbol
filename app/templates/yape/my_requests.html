@@ -1,77 +1,76 @@
 {% extends "base.html" %}
+{% from "macros/page_v2.html" import internal_shell, page_hero %}
 
 {% block title %}Mis compras Yape — Hamster Fijas{% endblock %}
 
 {% block content %}
-<section class="yape-page">
-  <div class="yape-page-header">
-    <h2>Mis compras Yape</h2>
-  </div>
+{% call internal_shell() %}
+{{ page_hero('Mis compras Yape', 'Historial de tus solicitudes de compra de Hamster puntos con Yape.') }}
 
-  <div class="yape-page-actions">
-    <a href="/comprar-yape" class="btn btn-primary btn-sm">+ Nueva compra</a>
-    <a href="/proximamente" class="btn btn-outline btn-sm">Ver ranking</a>
-  </div>
+<div class="yape-page-actions">
+  <a href="/comprar-yape" class="btn btn-primary btn-sm">+ Nueva compra</a>
+  <a href="/ranking" class="btn btn-outline btn-sm">Ver ranking</a>
+</div>
 
-  {% if purchases %}
-  <div class="panel table-panel">
-    <div class="table-wrap">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Fecha</th>
-            <th>Pack</th>
-            <th>Torneo</th>
-            <th>Monto</th>
-            <th>Código</th>
-            <th>Estado</th>
-            <th>HP</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for p in purchases %}
-          {% set pkg = packages.get(p.package_id) %}
-          {% set cat = categories.get(p.category_id) if p.category_id else none %}
-          <tr>
-            <td>{{ format_pet(p.created_at) }}</td>
-            <td>{{ pkg.label if pkg else p.package_id }}</td>
-            <td>{{ cat.name if cat else '—' }}</td>
-            <td>S/ {{ p.amount_soles }}</td>
-            <td><code>{{ p.operation_code }}</code></td>
-            <td>
-              {% if p.status.value == 'pending' %}
-              <span class="badge badge-pending">Pendiente</span>
-              {% elif p.status.value == 'approved' %}
-              <span class="badge badge-hit">Aprobada</span>
-              {% else %}
-              <span class="badge badge-miss">Rechazada</span>
-              {% endif %}
-            </td>
-            <td>
-              {% if p.status.value == 'approved' %}
-              +{{ p.hp_granted or 0 }} HP
-              {% elif p.status.value == 'pending' %}
-              {{ p.hp_requested }} HP
-              {% else %}
-              —
-              {% endif %}
-            </td>
-          </tr>
-          {% if p.admin_notes and p.status.value != 'pending' %}
-          <tr class="yape-admin-note-row">
-            <td colspan="7"><small><strong>Nota admin:</strong> {{ p.admin_notes }}</small></td>
-          </tr>
-          {% endif %}
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+{% if purchases %}
+<div class="v2-panel table-panel">
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Pack</th>
+          <th>Torneo</th>
+          <th>Monto</th>
+          <th>Código</th>
+          <th>Estado</th>
+          <th>HP</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in purchases %}
+        {% set pkg = packages.get(p.package_id) %}
+        {% set cat = categories.get(p.category_id) if p.category_id else none %}
+        <tr>
+          <td>{{ format_pet(p.created_at) }}</td>
+          <td>{{ pkg.label if pkg else p.package_id }}</td>
+          <td>{{ cat.name if cat else '—' }}</td>
+          <td>S/ {{ p.amount_soles }}</td>
+          <td><code>{{ p.operation_code }}</code></td>
+          <td>
+            {% if p.status.value == 'pending' %}
+            <span class="badge badge-pending">Pendiente</span>
+            {% elif p.status.value == 'approved' %}
+            <span class="badge badge-hit">Aprobada</span>
+            {% else %}
+            <span class="badge badge-miss">Rechazada</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if p.status.value == 'approved' %}
+            +{{ p.hp_granted or 0 }} HP
+            {% elif p.status.value == 'pending' %}
+            {{ p.hp_requested }} HP
+            {% else %}
+            —
+            {% endif %}
+          </td>
+        </tr>
+        {% if p.admin_notes and p.status.value != 'pending' %}
+        <tr class="yape-admin-note-row">
+          <td colspan="7"><small><strong>Nota admin:</strong> {{ p.admin_notes }}</small></td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
-  {% else %}
-  <div class="panel yape-empty">
-    <p>Aún no tienes compras registradas.</p>
-    <a href="/comprar-yape" class="btn btn-primary">Comprar Hamster puntos</a>
-  </div>
-  {% endif %}
-</section>
+</div>
+{% else %}
+<div class="v2-panel yape-empty">
+  <p>Aún no tienes compras registradas.</p>
+  <a href="/comprar-yape" class="btn btn-primary">Comprar Hamster puntos</a>
+</div>
+{% endif %}
+{% endcall %}
 {% endblock %}

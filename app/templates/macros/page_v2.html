@@ -1,0 +1,41 @@
+{% macro internal_shell() %}
+<div class="app-v2-shell internal-page">
+  <div class="internal-stack">
+    {{ caller() }}
+  </div>
+</div>
+{% endmacro %}
+
+{% macro page_hero(title, subtitle='', icon_src=none) %}
+<header class="v2-page-hero">
+  {% if icon_src %}
+  <img src="{{ icon_src }}" alt="" class="v2-page-hero-mascot" width="72" height="72" loading="lazy" decoding="async">
+  {% endif %}
+  <div class="v2-page-hero-content">
+    <h1 class="v2-page-title">{{ title }}</h1>
+    {% if subtitle %}<p class="v2-page-subtitle">{{ subtitle|safe }}</p>{% endif %}
+  </div>
+</header>
+{% endmacro %}
+
+{% macro tournament_filter_form(action, categories, selected_category_id, extra_hidden=none) %}
+{% if categories|length > 1 %}
+<section class="v2-panel filters-panel filters-compact internal-filter">
+  <form class="filters-form-compact" method="get" action="{{ action }}">
+    {% if extra_hidden %}
+    {% for name, value in extra_hidden.items() %}
+    <input type="hidden" name="{{ name }}" value="{{ value }}">
+    {% endfor %}
+    {% endif %}
+    <label class="filter-select-field">
+      <span class="filter-select-label">Torneo</span>
+      <select name="category_id" class="filter-select" onchange="this.form.submit()">
+        {% for cat in categories %}
+        <option value="{{ cat.id }}" {% if cat.id == selected_category_id %}selected{% endif %}>{{ cat.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+  </form>
+</section>
+{% endif %}
+{% endmacro %}

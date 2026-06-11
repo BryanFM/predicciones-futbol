@@ -1,0 +1,116 @@
+{% from "macros/tournament_icon.html" import tournament_icon %}
+{% from "macros/team_flag.html" import team_flag %}
+
+{% macro home_champion_panel(selected_category, selected_category_id, tournament_teams, my_champion, champion_open, champion_deadline, champion_stats, current_user) %}
+{% if selected_category and tournament_teams %}
+{% set many_champion_teams = tournament_teams|length > 10 %}
+{% set champion_expanded = not my_champion and not many_champion_teams %}
+<section class="v2-panel champion-panel app-v2-sidebar-champion {% if champion_expanded %}is-open{% else %}is-collapsed{% endif %}"
+  id="campeon">
+  <button type="button" class="champion-toggle" aria-expanded="{{ 'true' if champion_expanded else 'false' }}"
+    aria-controls="champion-body">
+    <div class="champion-toggle-main">
+      <span class="champion-toggle-title">
+        {{ tournament_icon(selected_category, 'sm') }}
+        Predicción de campeón
+      </span>
+      <span class="champion-header-pick" id="champion-header-pick">
+        {% if my_champion %}
+        {{ team_flag(my_champion.champion_team, 'sm') }}
+        <strong>{{ my_champion.champion_team }}</strong>
+        {% if selected_category.champion_decided %}
+        {% if my_champion.result == PredictionResult.HIT %}
+        <span class="badge badge-hit badge-sm">✓</span>
+        {% elif my_champion.result == PredictionResult.MISS %}
+        <span class="badge badge-miss badge-sm">✗</span>
+        {% endif %}
+        {% elif not champion_open %}
+        <span class="badge badge-pending badge-sm">🔒</span>
+        {% endif %}
+        {% else %}
+        <span class="champion-header-empty">
+          {% if not current_user %}Inicia sesión para elegir
+          {% elif not current_user.phone_verified %}Verifica tu celular
+          {% else %}Sin elegir{% endif %}
+        </span>
+        {% endif %}
+      </span>
+    </div>
+    <div class="champion-toggle-meta">
+      <span class="section-meta">+{{ CHAMPION_HIT_POINTS }} HP</span>
+      <svg class="champion-chevron" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="currentColor" d="M7 10l5 5 5-5H7z" />
+      </svg>
+    </div>
+  </button>
+
+  <div class="champion-body" id="champion-body" {% if not champion_expanded %}hidden{% endif %}>
+    {% if champion_deadline and champion_open %}
+    <p class="champion-deadline">📅 Elige antes del <strong>{{ format_pet(champion_deadline) }}</strong> (fin fase de grupos)</p>
+    {% elif champion_deadline and not champion_open and not selected_category.champion_decided %}
+    <p class="champion-deadline closed">🔒 Cerró el {{ format_pet(champion_deadline) }}</p>
+    {% endif %}
+
+    {% if selected_category.champion_decided %}
+    <p class="champion-resolved">
+      Campeón oficial: <strong>{{ selected_category.champion_team }}</strong>
+      {% if my_champion and my_champion.result == PredictionResult.HIT %}
+      <span class="badge badge-hit">✓ +{{ CHAMPION_HIT_POINTS }} HP</span>
+      {% elif my_champion and my_champion.result == PredictionResult.MISS %}
+      <span class="badge badge-miss">✗ No acertaste</span>
+      {% endif %}
+    </p>
+    {% endif %}
+
+    {% if champion_open and current_user and current_user.phone_verified %}
+    {% if my_champion %}
+    <p class="modal-edit-hint">Puedes cambiar tu campeón mientras las predicciones sigan abiertas.</p>
+    {% endif %}
+    <form class="champion-form" id="champion-form" method="post" action="/champion-predictions">
+      <input type="hidden" name="category_id" value="{{ selected_category_id }}">
+      <input type="hidden" name="champion_team" id="champion-team-input"
+        value="{{ my_champion.champion_team if my_champion else '' }}" required>
+      <div class="champion-grid">
+        {% for team in tournament_teams %}
+        <button type="button"
+          class="champion-option {% if my_champion and my_champion.champion_team == team %}selected{% endif %}"
+          data-team="{{ team }}" data-flag="{{ team_flag_url(team) or '' }}"
+          aria-pressed="{{ 'true' if my_champion and my_champion.champion_team == team else 'false' }}">
+          {{ team_flag(team) }}
+          <span>{{ team }}</span>
+          <span class="champion-option-pct{% if not champion_stats.by_team.get(team) %} hidden{% endif %}">{% if champion_stats.by_team.get(team) %}{{ champion_stats.by_team[team] }}%{% endif %}</span>
+        </button>
+        {% endfor %}
+      </div>
+      <button type="submit" class="btn btn-primary" id="champion-submit-btn" hidden aria-hidden="true">Guardar</button>
+      <p class="champion-save-status" id="champion-save-status" aria-live="polite"></p>
+    </form>
+    {% elif champion_open and not current_user %}
+    <p class="login-hint"><a href="/auth/login">Inicia sesión</a> para elegir al campeón.</p>
+    {% elif champion_open and current_user and not current_user.phone_verified %}
+    <p class="login-hint"><a href="/verificar-telefono">Verifica tu celular</a> para participar.</p>
+    {% elif not selected_category.champion_decided %}
+    <p class="predictions-closed">🔒 Predicciones de campeón cerradas</p>
+    {% endif %}
+
+    <div class="prediction-stats champion-stats{% if champion_stats.total == 0 %} hidden{% endif %}"
+      id="champion-community-stats">
+      <p class="prediction-stats-title">Predicciones de la comunidad <span class="prediction-stats-count"
+          id="champion-stats-count">({{ champion_stats.total }})</span></p>
+      <ul class="champion-stats-list" id="champion-stats-list">
+        {% for row in champion_stats.teams %}
+        <li class="champion-stats-row">
+          <span class="champion-stats-team">
+            {{ team_flag(row.team, 'sm') }}
+            <span>{{ row.team }}</span>
+          </span>
+          <span class="pct-bar" aria-hidden="true"><span class="pct-bar-fill" style="width: {{ row.pct }}%"></span></span>
+          <span class="champion-stats-pct">{{ row.pct }}%</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</section>
+{% endif %}
+{% endmacro %}

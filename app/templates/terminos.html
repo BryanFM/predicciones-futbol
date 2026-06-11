@@ -1,11 +1,11 @@
 {% extends "base.html" %}
+{% from "macros/page_v2.html" import internal_shell, page_hero %}
 {% block title %}Términos y Condiciones – Hamster Fijas{% endblock %}
 {% block meta_description %}Términos y condiciones de uso de Hamster Fijas: reglas de participación, predicciones del Mundial 2026, sorteos y responsabilidades.{% endblock %}
 {% block content %}
+{% call internal_shell() %}
+{{ page_hero('Términos y Condiciones de Uso', 'Última actualización: 11 de junio de 2026') }}
 <div class="legal-page">
-  <h2 class="legal-title">Términos y Condiciones de Uso</h2>
-  <p class="legal-updated">Última actualización: 11 de junio de 2026</p>
-
   <section class="legal-section">
     <h3>1. Aceptación de los términos</h3>
     <p>
@@ -133,4 +133,5 @@
     </p>
   </section>
 </div>
+{% endcall %}
 {% endblock %}

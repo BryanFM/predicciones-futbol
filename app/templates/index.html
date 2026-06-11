@@ -1,10 +1,17 @@
 {% extends "base.html" %}
 {% from "macros/team_flag.html" import team_flag %}
-{% from "macros/countdown.html" import countdown %}
 {% from "macros/tournament_icon.html" import tournament_icon %}
+{% from "macros/home_filters.html" import home_filters_form %}
+{% from "macros/home_matches_body.html" import home_matches_body %}
+{% from "macros/home_v2_sections.html" import home_v2_summary, home_v2_sidebar %}
 
 {% block title %}Predicciones Mundial 2026 — Hamster Fijas{% endblock %}
-{% block meta_description %}Registra tus predicciones de marcador exacto y campeón del Mundial 2026. Compite con amigos y acumula Hamster puntos.{% endblock %}
+{% block meta_description %}Registra tus predicciones de marcador exacto y campeón del Mundial 2026. Compite con amigos
+y acumula Hamster puntos.{% endblock %}
+
+{% block main_class %}app-v2-main{% endblock %}
+
+{% block yape_banner %}{% endblock %}
 
 {% block head_scripts %}
 {% if countdown_ms %}
@@ -13,448 +20,211 @@
 {% endblock %}
 
 {% block content %}
-{% if countdown_ms %}
-<section class="panel countdown-panel">
-  {{ countdown(countdown_ms, countdown_label) }}
-</section>
-{% endif %}
+<div class="app-v2-shell">
 
-{% if not current_user %}
-<section class="panel login-cta">
-  <img data-src="{{ static_url('hamster-120.png') }}" alt="Hamster Fijas" class="cta-img" width="120" height="120">
-  <div>
-    <h2>¡Registra tus fijas!</h2>
-    <p>Inicia sesión con Google para agregar tus predicciones y competir con tus amigos.</p>
-    <a href="/auth/login" class="btn btn-google">
-      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-      <span class="btn-google-label">Entrar con Google</span>
-      <span class="btn-google-label-short">Entrar</span>
-    </a>
-  </div>
-</section>
-{% endif %}
-
-{% if current_user and not current_user.phone_verified %}
-<section class="panel verify-banner">
-  <p>📱 <strong>Verifica tu celular</strong> para registrar predicciones.</p>
-  <a href="/verificar-telefono" class="btn btn-primary btn-sm">Verificar ahora</a>
-</section>
-{% endif %}
-
-{% if selected_category and tournament_teams %}
-{% set many_champion_teams = tournament_teams|length > 10 %}
-{% set champion_expanded = not my_champion and not many_champion_teams %}
-<section class="panel champion-panel {% if champion_expanded %}is-open{% else %}is-collapsed{% endif %}" id="campeon">
-  <button type="button" class="champion-toggle" aria-expanded="{{ 'true' if champion_expanded else 'false' }}" aria-controls="champion-body">
-    <div class="champion-toggle-main">
-      <span class="champion-toggle-title">
-        {{ tournament_icon(selected_category, 'sm') }}
-        Predicción de campeón
-      </span>
-      <span class="champion-header-pick" id="champion-header-pick">
-        {% if my_champion %}
-          {{ team_flag(my_champion.champion_team, 'sm') }}
-          <strong>{{ my_champion.champion_team }}</strong>
-          {% if selected_category.champion_decided %}
-            {% if my_champion.result == PredictionResult.HIT %}
-            <span class="badge badge-hit badge-sm">✓</span>
-            {% elif my_champion.result == PredictionResult.MISS %}
-            <span class="badge badge-miss badge-sm">✗</span>
-            {% endif %}
-          {% elif not champion_open %}
-            <span class="badge badge-pending badge-sm">🔒</span>
-          {% endif %}
-        {% else %}
-          <span class="champion-header-empty">
-            {% if not current_user %}Inicia sesión para elegir
-            {% elif not current_user.phone_verified %}Verifica tu celular
-            {% else %}Sin elegir{% endif %}
-          </span>
-        {% endif %}
-      </span>
+  {% if not current_user %}
+  <section class="v2-panel app-v2-login-cta">
+    <img data-src="{{ static_url('hamster-120.png') }}" alt="Hamster Fijas" class="cta-img v2-hero-mascot" width="96"
+      height="96">
+    <div>
+      <h2 class="app-v2-login-title">¡Registra tus fijas!</h2>
+      <p class="app-v2-muted">Inicia sesión con Google para agregar tus predicciones y competir con tus amigos.</p>
+      <a href="/auth/login" class="btn btn-google v2-btn-google">
+        <svg width="18" height="18" viewBox="0 0 48 48">
+          <path fill="#EA4335"
+            d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+          <path fill="#4285F4"
+            d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+          <path fill="#FBBC05"
+            d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+          <path fill="#34A853"
+            d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+        </svg>
+        <span class="btn-google-label">Entrar con Google</span>
+        <span class="btn-google-label-short">Entrar</span>
+      </a>
     </div>
-    <div class="champion-toggle-meta">
-      <span class="section-meta">+{{ CHAMPION_HIT_POINTS }} HP</span>
-      <svg class="champion-chevron" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-        <path fill="currentColor" d="M7 10l5 5 5-5H7z"/>
-      </svg>
-    </div>
-  </button>
-
-  <div class="champion-body" id="champion-body" {% if not champion_expanded %}hidden{% endif %}>
-    {% if champion_deadline and champion_open %}
-    <p class="champion-deadline">📅 Elige antes del <strong>{{ format_pet(champion_deadline) }}</strong> (fin fase de grupos)</p>
-    {% elif champion_deadline and not champion_open and not selected_category.champion_decided %}
-    <p class="champion-deadline closed">🔒 Cerró el {{ format_pet(champion_deadline) }}</p>
-    {% endif %}
-
-    {% if selected_category.champion_decided %}
-    <p class="champion-resolved">
-      Campeón oficial: <strong>{{ selected_category.champion_team }}</strong>
-      {% if my_champion and my_champion.result == PredictionResult.HIT %}
-      <span class="badge badge-hit">✓ +{{ CHAMPION_HIT_POINTS }} HP</span>
-      {% elif my_champion and my_champion.result == PredictionResult.MISS %}
-      <span class="badge badge-miss">✗ No acertaste</span>
-      {% endif %}
-    </p>
-    {% endif %}
-
-    {% if champion_open and current_user and current_user.phone_verified %}
-    {% if my_champion %}
-    <p class="modal-edit-hint">Puedes cambiar tu campeón mientras las predicciones sigan abiertas.</p>
-    {% endif %}
-    <form class="champion-form" id="champion-form" method="post" action="/champion-predictions">
-      <input type="hidden" name="category_id" value="{{ selected_category_id }}">
-      <input type="hidden" name="champion_team" id="champion-team-input"
-             value="{{ my_champion.champion_team if my_champion else '' }}" required>
-      <div class="champion-grid">
-        {% for team in tournament_teams %}
-        <button type="button" class="champion-option {% if my_champion and my_champion.champion_team == team %}selected{% endif %}"
-                data-team="{{ team }}"
-                data-flag="{{ team_flag_url(team) or '' }}"
-                aria-pressed="{{ 'true' if my_champion and my_champion.champion_team == team else 'false' }}">
-          {{ team_flag(team) }}
-          <span>{{ team }}</span>
-          <span class="champion-option-pct{% if not champion_stats.by_team.get(team) %} hidden{% endif %}">{% if champion_stats.by_team.get(team) %}{{ champion_stats.by_team[team] }}%{% endif %}</span>
-        </button>
-        {% endfor %}
-      </div>
-      <button type="submit" class="btn btn-primary" id="champion-submit-btn" hidden aria-hidden="true">Guardar</button>
-      <p class="champion-save-status" id="champion-save-status" aria-live="polite"></p>
-    </form>
-    {% elif champion_open and not current_user %}
-    <p class="login-hint"><a href="/auth/login">Inicia sesión</a> para elegir al campeón.</p>
-    {% elif champion_open and current_user and not current_user.phone_verified %}
-    <p class="login-hint"><a href="/verificar-telefono">Verifica tu celular</a> para participar.</p>
-    {% elif not selected_category.champion_decided %}
-    <p class="predictions-closed">🔒 Predicciones de campeón cerradas</p>
-    {% endif %}
-
-    <div class="prediction-stats champion-stats{% if champion_stats.total == 0 %} hidden{% endif %}" id="champion-community-stats">
-      <p class="prediction-stats-title">Predicciones de la comunidad <span class="prediction-stats-count" id="champion-stats-count">({{ champion_stats.total }})</span></p>
-      <ul class="champion-stats-list" id="champion-stats-list">
-        {% for row in champion_stats.teams %}
-        <li class="champion-stats-row">
-          <span class="champion-stats-team">
-            {{ team_flag(row.team, 'sm') }}
-            <span>{{ row.team }}</span>
-          </span>
-          <span class="pct-bar" aria-hidden="true"><span class="pct-bar-fill" style="width: {{ row.pct }}%"></span></span>
-          <span class="champion-stats-pct">{{ row.pct }}%</span>
-        </li>
-        {% endfor %}
-      </ul>
-    </div>
-  </div>
-</section>
-{% endif %}
-
-{% if group_summaries %}
-<section class="panel groups-panel is-collapsed" id="grupos">
-  <button type="button" class="groups-toggle" aria-expanded="false" aria-controls="groups-body">
-    <div class="groups-toggle-main">
-      <span class="groups-toggle-title">Fase de grupos</span>
-      <span class="groups-toggle-meta">{{ group_summaries|length }} grupo{{ 's' if group_summaries|length != 1 else '' }}</span>
-    </div>
-    <div class="groups-toggle-end">
-      {% if selected_category %}
-      <span class="section-meta tournament-label">
-        {{ tournament_icon(selected_category, 'xs') }}
-        <span>{{ selected_category.name }}</span>
-      </span>
-      {% endif %}
-      <svg class="groups-chevron" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-        <path fill="currentColor" d="M7 10l5 5 5-5H7z"/>
-      </svg>
-    </div>
-  </button>
-
-  <div class="groups-body" id="groups-body" hidden>
-  <div class="groups-grid">
-    {% for g in group_summaries %}
-    <details class="group-card" {% if selected_group == g.group_name or group_summaries|length == 1 %}open{% endif %}>
-      <summary class="group-card-summary">
-        <span class="group-badge">Grupo {{ g.group_name }}</span>
-        <span class="group-card-meta">{{ g.played_count }}/{{ g.total_count }} partidos jugados</span>
-        {% if current_user and g.user_hits %}
-        <span class="group-card-hits">Tus aciertos: {{ g.user_hits }}</span>
-        {% endif %}
-        {% if g.is_complete %}<span class="badge badge-hit badge-sm">Completo</span>{% endif %}
-      </summary>
-
-      <div class="group-card-body">
-        {% if g.standings %}
-        <div class="table-wrap">
-          <table class="data-table standings-table">
-            <thead>
-              <tr>
-                <th>Equipo</th>
-                <th>PJ</th>
-                <th>G</th>
-                <th>E</th>
-                <th>P</th>
-                <th>GF</th>
-                <th>GC</th>
-                <th>DG</th>
-                <th>Pts</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for row in g.standings %}
-              <tr>
-                <td class="standings-team">
-                  {{ team_flag(row.team, 'sm') }}
-                  <span>{{ row.team }}</span>
-                </td>
-                <td>{{ row.played }}</td>
-                <td>{{ row.won }}</td>
-                <td>{{ row.drawn }}</td>
-                <td>{{ row.lost }}</td>
-                <td>{{ row.gf }}</td>
-                <td>{{ row.ga }}</td>
-                <td>{% if row.gd > 0 %}+{% endif %}{{ row.gd }}</td>
-                <td><strong>{{ row.pts }}</strong></td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-        {% endif %}
-
-        <ul class="group-matches-list">
-          {% for m in g.matches %}
-          <li class="group-match-item {% if m.is_finished %}is-finished{% endif %}">
-            <time>{{ format_pet(m.match_date) }}</time>
-            <span class="group-match-teams">
-              {{ team_flag(m.home_team, 'sm') }} {{ m.home_team }}
-              <span class="group-match-score">
-                {% if m.is_finished %}{{ m.home_score }} - {{ m.away_score }}{% else %}vs{% endif %}
-              </span>
-              {{ m.away_team }} {{ team_flag(m.away_team, 'sm') }}
-            </span>
-          </li>
-          {% endfor %}
-        </ul>
-
-        <a href="/?category_id={{ selected_category_id }}&group={{ g.group_name }}" class="btn btn-outline btn-sm group-filter-link">
-          Filtrar partidos del grupo {{ g.group_name }}
-        </a>
-      </div>
-    </details>
-    {% endfor %}
-  </div>
-  </div>
-</section>
-{% endif %}
-
-<section class="panel filters-panel filters-compact">
-  <form class="filters-form-compact" method="get" action="/">
-    {% if categories|length > 1 %}
-    <label class="filter-select-field filter-select-tournament">
-      <span class="filter-select-label">Torneo</span>
-      <select name="category_id" class="filter-select" onchange="this.form.submit()">
-        {% for cat in categories %}
-        <option value="{{ cat.id }}" {% if cat.id == selected_category_id %}selected{% endif %}>{{ cat.name }}</option>
-        {% endfor %}
-      </select>
-    </label>
-    {% else %}
-    <input type="hidden" name="category_id" value="{{ selected_category_id }}">
-    {% endif %}
-
-    <label class="filter-select-field">
-      <span class="filter-select-label">Fecha</span>
-      <select name="match_date" class="filter-select" onchange="this.form.submit()">
-        <option value="" {% if not selected_match_date %}selected{% endif %}>Todas las fechas</option>
-        {% for d in available_dates %}
-        <option value="{{ d.isoformat() }}" {% if selected_match_date == d.isoformat() %}selected{% endif %}>{{ d.strftime('%d/%m/%Y') }}</option>
-        {% endfor %}
-      </select>
-    </label>
-
-    {% if available_groups %}
-    <label class="filter-select-field">
-      <span class="filter-select-label">Grupo</span>
-      <select name="group" class="filter-select" onchange="this.form.submit()">
-        <option value="" {% if not selected_group %}selected{% endif %}>Todos los grupos</option>
-        {% for g in available_groups %}
-        <option value="{{ g }}" {% if selected_group == g %}selected{% endif %}>Grupo {{ g }}</option>
-        {% endfor %}
-      </select>
-    </label>
-    {% endif %}
-
-    <span class="filters-count">{{ matches|length }} partido{{ 's' if matches|length != 1 else '' }}</span>
-    {% if available_groups %}
-    <a href="#grupos" class="filters-groups-link">Ver grupos</a>
-    {% endif %}
-  </form>
-</section>
-
-
-<section class="matches-section">
-  <div class="section-header">
-    <h2>Partidos</h2>
-    {% if selected_category %}
-    <span class="section-meta tournament-label">
-      {{ tournament_icon(selected_category, 'xs') }}
-      <span>
-        {{ selected_category.name }}
-        {% if selected_match_date %} · {{ selected_match_date }}{% endif %}
-        {% if selected_group %} · Grupo {{ selected_group }}{% endif %}
-      </span>
-    </span>
-    {% endif %}
-  </div>
-
-  {% if not matches %}
-  <div class="panel empty-state"><p>No hay partidos con estos filtros.</p></div>
-  {% else %}
-  <div class="match-list{% if SHOW_MATCH_HAMSTER_GIFS %} match-list-with-whistle{% endif %}" data-lazy-list data-lazy-batch="12">
-    <div class="match-list-head">
-      {% if SHOW_MATCH_HAMSTER_GIFS %}<span class="head-whistle" aria-hidden="true"></span>{% endif %}
-      <span>Fecha</span>
-      <span>Partido</span>
-      <span class="match-head-community">Comunidad</span>
-      <div class="match-list-head-picks">
-        <span class="pick-head">Resultado final</span>
-        <span class="pick-head">Marcador</span>
-        <span class="pick-head">1X2</span>
-        <span class="pick-head">Estado</span>
-      </div>
-    </div>
-
-    {% for match in matches %}
-    {% set score_pred = match_user_score(match, current_user) %}
-    {% set outcome_pred = match_user_outcome(match, current_user) %}
-    {% set my_wager = user_wagers_by_match.get(match.id) if user_wagers_by_match else none %}
-    {% set has_mine = user_has_predictions(match, current_user) %}
-    {% set outcome = match_outcome_stats.get(match.id, {}) %}
-    <div class="match-row status-{{ match.predictions_status }} {% if not has_mine %}match-row-empty{% endif %}{% if loop.index0 >= 12 %} lazy-deferred{% endif %}"
-         {% if loop.index0 >= 12 %}aria-hidden="true"{% endif %}
-         data-match-id="{{ match.id }}"
-         data-home="{{ match.home_team }}"
-         data-away="{{ match.away_team }}"
-         data-home-flag="{{ team_flag_url(match.home_team) or '' }}"
-         data-away-flag="{{ team_flag_url(match.away_team) or '' }}"
-         data-meta="{{ format_pet(match.match_date) }}{% if match.group_name %} · Grupo {{ match.group_name }}{% endif %}"
-         {% if score_pred %}
-         data-has-pred="1"
-         data-pred-home="{{ score_pred.predicted_home_score if score_pred.predicted_home_score is not none else 0 }}"
-         data-pred-away="{{ score_pred.predicted_away_score if score_pred.predicted_away_score is not none else 0 }}"
-         {% else %}
-         data-has-pred="0"
-         {% endif %}
-         {% if outcome_pred %}
-         data-has-outcome="1"
-         data-outcome-pick="{{ outcome_pred.outcome_pick }}"
-         data-outcome-result="{{ outcome_pred.result.value }}"
-         {% else %}
-         data-has-outcome="0"
-         {% endif %}
-         {% if my_wager %}
-         data-has-wager="1"
-         data-wager-id="{{ my_wager.id }}"
-         data-wager-pick="{{ my_wager.pick }}"
-         data-wager-stake="{{ my_wager.stake_hp }}"
-         data-wager-status="{{ my_wager.status.value }}"
-         {% else %}
-         data-has-wager="0"
-         {% endif %}
-         data-open="{{ '1' if match.predictions_open else '0' }}"
-         data-cutoff-ms="{{ predictions_cutoff_ms(match) }}"
-         data-official-home="{{ match.home_score if match.home_score is not none else '' }}"
-         data-official-away="{{ match.away_score if match.away_score is not none else '' }}"
-         data-finished="{{ '1' if match.is_finished else '0' }}"
-         {% if outcome.total %}
-         data-pct-total="{{ outcome.total }}"
-         data-pct-home="{{ outcome.home_pct }}"
-         data-pct-draw="{{ outcome.draw_pct }}"
-         data-pct-away="{{ outcome.away_pct }}"
-         {% endif %}>
-      {% if SHOW_MATCH_HAMSTER_GIFS %}
-      <div class="match-whistle" aria-hidden="true">
-        <img data-src="{{ match_hamster_gif(match, current_user) }}" alt="" class="match-whistle-gif" width="44" height="44">
-      </div>
-      {% endif %}
-      <div class="match-row-date">
-        {% if match.group_name %}
-        <span class="group-badge match-row-group">Grupo {{ match.group_name }}</span>
-        {% endif %}
-        <span class="date-day">{{ match.match_date.strftime('%d/%m') }}</span>
-        <span class="date-time">{{ match.match_date.strftime('%H:%M') }}</span>
-      </div>
-
-      <div class="match-row-info">
-        <div class="match-row-team">
-          {{ team_flag(match.home_team) }}
-          <span>{{ match.home_team }}</span>
-        </div>
-        <div class="match-row-team">
-          {{ team_flag(match.away_team, 'away') }}
-          <span>{{ match.away_team }}</span>
-        </div>
-      </div>
-
-      <div class="match-row-community pick-action" role="button" tabindex="0" data-open-modal="outcome" aria-label="Predicción 1X2">
-        {% if outcome.total %}
-        <div class="match-outcome-stats" aria-label="Predicciones: local {{ outcome.home_pct }}%, empate {{ outcome.draw_pct }}%, visitante {{ outcome.away_pct }}%">
-          <div class="outcome-bar">
-            {% if outcome.home_pct %}<span class="outcome-seg home" style="width: {{ outcome.home_pct }}%"></span>{% endif %}
-            {% if outcome.draw_pct %}<span class="outcome-seg draw" style="width: {{ outcome.draw_pct }}%"></span>{% endif %}
-            {% if outcome.away_pct %}<span class="outcome-seg away" style="width: {{ outcome.away_pct }}%"></span>{% endif %}
-          </div>
-          <div class="outcome-labels">
-            <span class="outcome-label home" title="Gana local">L {{ outcome.home_pct }}%</span>
-            <span class="outcome-label draw" title="Empate">E {{ outcome.draw_pct }}%</span>
-            <span class="outcome-label away" title="Gana visitante">V {{ outcome.away_pct }}%</span>
-          </div>
-        </div>
-        {% else %}
-        <span class="match-outcome-empty" aria-hidden="true">—</span>
-        {% endif %}
-      </div>
-
-      <div class="match-row-picks">
-        <div class="pick-slot official-slot {% if match.is_finished %}filled{% else %}empty{% endif %}">
-          <span class="pick-label">Oficial</span>
-          <span class="pick-value">
-            {% if match.is_finished %}{{ match.home_score }} - {{ match.away_score }}{% else %}—{% endif %}
-          </span>
-        </div>
-
-        <div class="pick-slot score-slot pick-action {% if current_user and score_pred %}filled{% else %}empty{% endif %}" role="button" tabindex="0" data-open-modal="score" aria-label="Predicción de marcador">
-          <span class="pick-label">Marcador</span>
-          <span class="pick-value">{% if current_user and score_pred %}{{ score_label(score_pred) }}{% else %}<span class="pick-cta">+</span>{% endif %}</span>
-        </div>
-
-        <div class="pick-slot outcome-slot pick-action {% if current_user and outcome_pred %}filled{% else %}empty{% endif %}" role="button" tabindex="0" data-open-modal="outcome" aria-label="Predicción 1X2">
-          <span class="pick-label">1X2</span>
-          <span class="pick-value">{% if current_user and outcome_pred %}{{ outcome_pred.outcome_pick }}{% if my_wager and my_wager.status.value == 'pending' %} · {{ my_wager.stake_hp }}HP{% endif %}{% else %}<span class="pick-cta">+</span>{% endif %}</span>
-        </div>
-
-        <div class="pick-slot status-slot {% if current_user and has_mine %}filled{% else %}empty{% endif %}">
-          <span class="pick-label">Estado</span>
-          <span class="pick-value">
-            {% if not current_user %}—
-            {% elif not has_mine %}<span class="pick-cta">+</span>
-            {% elif score_pred and score_pred.result == PredictionResult.HIT %}✓
-            {% elif score_pred and score_pred.result == PredictionResult.MISS %}✗
-            {% elif score_pred %}⏳
-            {% else %}—{% endif %}
-          </span>
-        </div>
-      </div>
-    </div>
-    {% endfor %}
-  </div>
+  </section>
   {% endif %}
-</section>
+
+  {% if current_user and not current_user.phone_verified %}
+  <section class="v2-panel app-v2-verify">
+    <p>📱 <strong>Verifica tu celular</strong> para registrar predicciones.</p>
+    <a href="/verificar-telefono" class="v2-btn-primary btn-sm">Verificar ahora</a>
+  </section>
+  {% endif %}
+
+  <section class="v2-hero">
+    <div class="v2-hero-content">
+      <p class="v2-hero-kicker">{{ selected_category.name if selected_category else 'Mundial 2026' }}</p>
+      <h1 class="v2-hero-title">COMPITE. ACERTA. GANA.<br>DEMUESTRA QUIÉN SABE MÁS DE FÚTBOL.</h1>
+    </div>
+    <img src="{{ static_url('hamster-80.png') }}" alt="" class="v2-hero-mascot" width="120" height="120">
+  </section>
+
+  <div class="v2-layout app-v2-layout">
+    <div class="v2-main">
+      <section class="v2-panel matches-section" id="home-matches-panel">
+        <div class="v2-section-head home-matches-head">
+          <h2 class="v2-section-title">Partidos</h2>
+          <div data-swap-target="home-matches-meta">
+            {% if selected_category %}
+            <span class="section-meta tournament-label home-v2-tournament-meta" data-home-matches-meta>
+              {{ tournament_icon(selected_category, 'xs') }}
+              <span>
+                {{ selected_category.name }}
+                {% if selected_match_date %} · {{ selected_match_date }}{% endif %}
+                {% if selected_group %} · Grupo {{ selected_group }}{% endif %}
+              </span>
+            </span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="home-matches-toolbar filters-compact" id="home-filters-panel">
+          <div data-swap-target="home-filters">
+            {{ home_filters_form(categories, selected_category_id, available_dates, selected_match_date, available_groups, selected_group, matches|length) }}
+          </div>
+        </div>
+
+        <div data-swap-target="home-matches-body">
+          {{ home_matches_body(matches, current_user, user_wagers_by_match, match_outcome_stats) }}
+        </div>
+      </section>
+
+
+      {% if group_summaries %}
+      <section class="v2-panel groups-panel is-collapsed" id="grupos">
+        <button type="button" class="groups-toggle" aria-expanded="false" aria-controls="groups-body">
+          <div class="groups-toggle-main">
+            <span class="groups-toggle-title">Fase de grupos</span>
+            <span class="groups-toggle-meta">{{ group_summaries|length }} grupo{{ 's' if group_summaries|length != 1
+              else ''
+              }}</span>
+          </div>
+          <div class="groups-toggle-end">
+            {% if selected_category %}
+            <span class="section-meta tournament-label">
+              {{ tournament_icon(selected_category, 'xs') }}
+              <span>{{ selected_category.name }}</span>
+            </span>
+            {% endif %}
+            <svg class="groups-chevron" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="currentColor" d="M7 10l5 5 5-5H7z" />
+            </svg>
+          </div>
+        </button>
+
+        <div class="groups-body" id="groups-body" hidden>
+          <div class="groups-grid">
+            {% for g in group_summaries %}
+            <details class="group-card" {% if selected_group==g.group_name or group_summaries|length==1 %}open{% endif
+              %}>
+              <summary class="group-card-summary">
+                <span class="group-badge">Grupo {{ g.group_name }}</span>
+                <span class="group-card-meta">{{ g.played_count }}/{{ g.total_count }} partidos jugados</span>
+                {% if current_user and g.user_hits %}
+                <span class="group-card-hits">Tus aciertos: {{ g.user_hits }}</span>
+                {% endif %}
+                {% if g.is_complete %}<span class="badge badge-hit badge-sm">Completo</span>{% endif %}
+              </summary>
+
+              <div class="group-card-body">
+                {% if g.standings %}
+                <div class="table-wrap">
+                  <table class="data-table standings-table">
+                    <thead>
+                      <tr>
+                        <th>Equipo</th>
+                        <th>PJ</th>
+                        <th>G</th>
+                        <th>E</th>
+                        <th>P</th>
+                        <th>GF</th>
+                        <th>GC</th>
+                        <th>DG</th>
+                        <th>Pts</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for row in g.standings %}
+                      <tr>
+                        <td class="standings-team">
+                          {{ team_flag(row.team, 'sm') }}
+                          <span>{{ row.team }}</span>
+                        </td>
+                        <td>{{ row.played }}</td>
+                        <td>{{ row.won }}</td>
+                        <td>{{ row.drawn }}</td>
+                        <td>{{ row.lost }}</td>
+                        <td>{{ row.gf }}</td>
+                        <td>{{ row.ga }}</td>
+                        <td>{% if row.gd > 0 %}+{% endif %}{{ row.gd }}</td>
+                        <td><strong>{{ row.pts }}</strong></td>
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+                {% endif %}
+
+                <ul class="group-matches-list">
+                  {% for m in g.matches %}
+                  <li class="group-match-item {% if m.is_finished %}is-finished{% endif %}">
+                    <time>{{ format_pet(m.match_date) }}</time>
+                    <span class="group-match-teams">
+                      {{ team_flag(m.home_team, 'sm') }} {{ m.home_team }}
+                      <span class="group-match-score">
+                        {% if m.is_finished %}{{ m.home_score }} - {{ m.away_score }}{% else %}vs{% endif %}
+                      </span>
+                      {{ m.away_team }} {{ team_flag(m.away_team, 'sm') }}
+                    </span>
+                  </li>
+                  {% endfor %}
+                </ul>
+
+                <a href="/?category_id={{ selected_category_id }}&group={{ g.group_name }}"
+                  class="btn btn-outline btn-sm group-filter-link">
+                  Filtrar partidos del grupo {{ g.group_name }}
+                </a>
+              </div>
+            </details>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+      {% endif %}
+
+      {% if current_user %}
+      <div data-swap-target="home-summary">
+        {{ home_v2_summary(home_dashboard) }}
+      </div>
+      {% else %}
+      <div data-swap-target="home-summary" hidden></div>
+      {% endif %}
+    </div>
+
+    {{ home_v2_sidebar(
+      home_dashboard,
+      current_user,
+      request,
+      countdown_ms,
+      countdown_label,
+      selected_category=selected_category,
+      selected_category_id=selected_category_id,
+      tournament_teams=tournament_teams,
+      my_champion=my_champion,
+      champion_open=champion_open,
+      champion_deadline=champion_deadline,
+      champion_stats=champion_stats
+    ) }}
+  </div>
+</div>
 
 <div id="score-modal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="score-modal-title"
-     data-logged-in="{{ '1' if current_user else '0' }}"
-     data-verified="{{ '1' if current_user and current_user.phone_verified else '0' }}"
-     data-is-admin="{{ '1' if current_user and current_user.is_admin else '0' }}">
+  data-logged-in="{{ '1' if current_user else '0' }}"
+  data-verified="{{ '1' if current_user and current_user.phone_verified else '0' }}"
+  data-is-admin="{{ '1' if current_user and current_user.is_admin else '0' }}">
   <div class="modal-backdrop"></div>
   <div class="modal-dialog panel">
     <button type="button" class="modal-close" aria-label="Cerrar">×</button>
@@ -486,18 +256,22 @@
     <div class="modal-admin-wrap hidden" id="score-modal-admin-wrap">
       <h4 class="modal-admin-title">Marcador oficial (admin)</h4>
       <form id="official-score-form" class="score-form modal-score-form" method="post">
-        <input type="number" name="home_score" id="score-modal-official-home" min="0" value="0" aria-label="Goles local">
+        <input type="number" name="home_score" id="score-modal-official-home" min="0" value="0"
+          aria-label="Goles local">
         <span>-</span>
-        <input type="number" name="away_score" id="score-modal-official-away" min="0" value="0" aria-label="Goles visitante">
+        <input type="number" name="away_score" id="score-modal-official-away" min="0" value="0"
+          aria-label="Goles visitante">
         <button type="submit" class="btn btn-secondary btn-sm" id="score-modal-official-save">Guardar oficial</button>
-        <button type="button" class="btn btn-danger btn-sm hidden" id="score-modal-official-clear">Quitar marcador</button>
+        <button type="button" class="btn btn-danger btn-sm hidden" id="score-modal-official-clear">Quitar
+          marcador</button>
       </form>
     </div>
     {% endif %}
 
     {% if current_user and current_user.phone_verified %}
     <div class="modal-form-wrap hidden" id="score-modal-form-wrap">
-      <p class="modal-edit-hint hidden" id="score-modal-edit-hint">Puedes modificar tu marcador hasta 5 min antes del partido.</p>
+      <p class="modal-edit-hint hidden" id="score-modal-edit-hint">Puedes modificar tu marcador hasta 5 min antes del
+        partido.</p>
       <form id="prediction-form" class="score-prediction-form" method="post" action="/predictions">
         <input type="hidden" name="match_id" id="score-modal-match-id">
         <input type="hidden" name="return_category_id" value="{{ selected_category_id or '' }}">
@@ -507,7 +281,8 @@
           <div class="score-input-group">
             <label id="score-modal-home-label">
               <span class="score-label-text" id="score-modal-home-label-text">Local</span>
-              <input type="number" name="predicted_home_score" id="score-modal-home-score" min="0" max="20" required value="0" autocomplete="off">
+              <input type="number" name="predicted_home_score" id="score-modal-home-score" min="0" max="20" required
+                value="0" autocomplete="off">
             </label>
             <div class="goal-icons empty" id="score-modal-home-icons" aria-live="polite"></div>
           </div>
@@ -515,7 +290,8 @@
           <div class="score-input-group">
             <label id="score-modal-away-label">
               <span class="score-label-text" id="score-modal-away-label-text">Visitante</span>
-              <input type="number" name="predicted_away_score" id="score-modal-away-score" min="0" max="20" required value="0" autocomplete="off">
+              <input type="number" name="predicted_away_score" id="score-modal-away-score" min="0" max="20" required
+                value="0" autocomplete="off">
             </label>
             <div class="goal-icons empty" id="score-modal-away-icons" aria-live="polite"></div>
           </div>
@@ -528,14 +304,11 @@
 </div>
 
 <div id="outcome-modal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="outcome-modal-title"
-     data-logged-in="{{ '1' if current_user else '0' }}"
-     data-verified="{{ '1' if current_user and current_user.phone_verified else '0' }}"
-     {% if wager_ctx %}
-     data-wager-available="{{ wager_ctx.balance.available }}"
-     data-wager-min="{{ wager_ctx.min_stake }}"
-     data-wager-max="{{ [wager_ctx.balance.available, wager_ctx.max_stake]|min }}"
-     {% endif %}
-     data-outcome-hp="{{ hp_rules.outcome_hit if hp_rules else 2 }}">
+  data-logged-in="{{ '1' if current_user else '0' }}"
+  data-verified="{{ '1' if current_user and current_user.phone_verified else '0' }}" {% if wager_ctx %}
+  data-wager-available="{{ wager_ctx.balance.available }}" data-wager-min="{{ wager_ctx.min_stake }}"
+  data-wager-max="{{ [wager_ctx.balance.available, wager_ctx.max_stake]|min }}" {% endif %}
+  data-outcome-hp="{{ hp_rules.outcome_hit if hp_rules else 2 }}">
   <div class="modal-backdrop"></div>
   <div class="modal-dialog panel">
     <button type="button" class="modal-close" aria-label="Cerrar">×</button>
@@ -619,6 +392,11 @@
   </div>
 </div>
 
+{% endblock %}
+
+{% block page_scripts %}
+<script src="{{ static_url('home-filters.js') }}" defer></script>
+<script src="{{ static_url('matches-carousel.js') }}" defer></script>
 <script src="{{ static_url('hf-ajax.js') }}" defer></script>
 <script src="{{ static_url('goal-icons.js') }}" defer></script>
 <script src="{{ static_url('champion-form.js') }}" defer></script>

@@ -1,9 +1,11 @@
 {% extends "base.html" %}
+{% from "macros/page_v2.html" import internal_shell, page_hero %}
 
 {% block title %}{{ status_code }} — {{ title }} | Hamster Fijas{% endblock %}
 
 {% block content %}
-<section class="error-page">
+{% call internal_shell() %}
+<section class="v2-panel error-page">
   <img data-src="{{ static_url('hamster-120.png') }}" alt="" class="error-page-img" width="100" height="100">
   <p class="error-page-code" aria-hidden="true">{{ status_code }}</p>
   <h1 class="error-page-title">{{ title }}</h1>
@@ -15,4 +17,5 @@
     {% endif %}
   </div>
 </section>
+{% endcall %}
 {% endblock %}

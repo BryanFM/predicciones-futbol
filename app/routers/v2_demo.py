@@ -8,7 +8,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.models import Match, Prediction, PredictionResult, PredictionType, User
+from app.models import Category, Match, Prediction, PredictionResult, PredictionType, User
 from app.points import leaderboard, user_hamster_points
 from app.referrals import referral_stats
 from app.services import get_match_outcome_stats_batch, get_mundial_category
@@ -232,41 +232,59 @@ def _build_achievements(
 def build_v2_dashboard_context(
     db: Session,
     current_user: Optional[User],
+    *,
+    category_id: Optional[int] = None,
+    featured_match_id: Optional[int] = None,
 ) -> dict:
-    category = get_mundial_category(db)
-    category_id = category.id if category else None
+    category = None
+    if category_id:
+        category = db.query(Category).filter(Category.id == category_id).first()
+    if not category:
+        category = get_mundial_category(db)
+    resolved_category_id = category.id if category else None
 
     my_points = (
-        user_hamster_points(db, current_user.id, category_id) if current_user else None
+        user_hamster_points(db, current_user.id, resolved_category_id) if current_user else None
     )
     rank = (
-        _user_rank(db, category_id, current_user.id)
-        if current_user and category_id
+        _user_rank(db, resolved_category_id, current_user.id)
+        if current_user and resolved_category_id
         else None
     )
     accuracy = (
-        _user_accuracy(db, current_user.id, category_id) if current_user else None
+        _user_accuracy(db, current_user.id, resolved_category_id) if current_user else None
     )
 
     matches = _build_matches(
         db,
-        category_id,
+        resolved_category_id,
         current_user.id if current_user else None,
-    ) if category_id else []
+    ) if resolved_category_id else []
 
-    featured_match_id = matches[0]["id"] if matches else None
+    if featured_match_id:
+        featured_id = featured_match_id
+        featured_match = db.query(Match).filter(Match.id == featured_match_id).first()
+        community_match_label = (
+            f"{featured_match.home_team} vs {featured_match.away_team}"
+            if featured_match
+            else None
+        )
+    else:
+        featured_id = matches[0]["id"] if matches else None
+        community_match_label = (
+            f"{matches[0]['home']} vs {matches[0]['away']}" if matches else None
+        )
+
     outcome_stats = (
-        get_match_outcome_stats_batch(db, [featured_match_id]).get(featured_match_id, {})
-        if featured_match_id
+        get_match_outcome_stats_batch(db, [featured_id]).get(featured_id, {})
+        if featured_id
         else {}
     )
     community_outcomes = _community_outcomes(outcome_stats)
-    community_scores = (
-        _score_stats(db, featured_match_id) if featured_match_id else []
-    )
+    community_scores = _score_stats(db, featured_id) if featured_id else []
 
     friends = (
-        _build_friends(db, current_user.id, category_id) if current_user else []
+        _build_friends(db, current_user.id, resolved_category_id) if current_user else []
     )
 
     competitive = my_points["competitive"] if my_points else 0
@@ -293,13 +311,11 @@ def build_v2_dashboard_context(
         "matches": matches,
         "community_outcomes": community_outcomes,
         "community_scores": community_scores,
-        "community_match_label": (
-            f"{matches[0]['home']} vs {matches[0]['away']}" if matches else None
-        ),
+        "community_match_label": community_match_label,
         "leaderboard": _build_leaderboard(
-            db, category_id, current_user.id if current_user else None
-        ) if category_id else [],
+            db, resolved_category_id, current_user.id if current_user else None
+        ) if resolved_category_id else [],
         "friends": friends,
         "achievements": _build_achievements(my_points, rank, len(friends)),
-        "selected_category_id": category_id,
+        "selected_category_id": resolved_category_id,
     }

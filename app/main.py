@@ -173,7 +173,7 @@ def sitemap_xml(request: Request, db: Session = Depends(get_db)):
     base = site_base_url(request)
     static_routes = [
         ("/", "daily", "1.0", None),
-        ("/proximamente", "weekly", "0.8", None),
+        ("/ranking", "weekly", "0.8", None),
         ("/privacidad", "monthly", "0.4", None),
         ("/terminos", "monthly", "0.4", None),
         ("/preguntas-frecuentes", "monthly", "0.5", None),
@@ -651,171 +651,78 @@ def home(
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user),
 ):
-    from app.services import (
-        champion_predictions_open,
-        filter_matches_by_date,
-        filter_matches_by_group,
-        get_available_groups,
-        get_available_match_dates,
-        get_champion_deadline,
-        get_champion_prediction_stats,
-        get_group_summaries,
-        get_match_outcome_stats_batch,
-        get_stats,
-        get_tournament_starts_at,
-        get_tournament_teams,
-        get_user_champion_prediction,
+    from app.home_page import build_home_page_context
+
+    ctx = build_home_page_context(
+        db,
+        current_user,
+        category_id=category_id,
+        match_date=match_date,
+        group=group,
     )
-
-    categories_query = db.query(Category).order_by(Category.name)
-    if not (current_user and current_user.is_admin):
-        categories_query = categories_query.filter(Category.is_active.is_(True))
-    categories = categories_query.all()
-    selected = category_id or (categories[0].id if categories else None)
-    selected_category = next((c for c in categories if c.id == selected), None)
-
-    matches_query = (
-        db.query(Match)
-        .options(joinedload(Match.predictions).joinedload(Prediction.user), joinedload(Match.category))
-        .order_by(Match.match_date)
-    )
-    if selected:
-        matches_query = matches_query.filter(Match.category_id == selected)
-
-    matches_query, selected_date = filter_matches_by_date(matches_query, match_date) if match_date else (matches_query, None)
-    matches_query, selected_group = filter_matches_by_group(matches_query, group)
-    matches = matches_query.all()
-    available_dates = get_available_match_dates(db, selected)
-    available_groups = get_available_groups(db, selected)
-    group_summaries = get_group_summaries(db, selected, current_user.id if current_user else None) if selected else []
-    stats = get_stats(db, selected)
-
-    tournament_teams: list[str] = []
-    my_champion = None
-    champion_open = False
-    champion_stats = {"total": 0, "teams": [], "by_team": {}}
-    match_outcome_stats: dict = {}
-    countdown_ms = None
-    countdown_label = ""
-
-    champion_deadline = None
-    if selected_category:
-        tournament_teams = get_tournament_teams(db, selected)
-        champion_open = champion_predictions_open(db, selected_category)
-        champion_deadline = get_champion_deadline(db, selected_category)
-        champion_stats = get_champion_prediction_stats(db, selected_category.id)
-        starts_at = get_tournament_starts_at(db, selected_category)
-        if starts_at:
-            countdown_ms = pet_timestamp_ms(starts_at)
-            countdown_label = selected_category.name
-        if current_user:
-            my_champion = get_user_champion_prediction(db, current_user.id, selected_category.id)
-
-    if matches:
-        match_outcome_stats = get_match_outcome_stats_batch(db, [m.id for m in matches])
-
-    user_wagers_by_match: dict[int, object] = {}
-    wager_balance_info = None
-    if current_user and current_user.phone_verified and selected:
-        from app.models import PointWager
-        from app.wagers import MAX_STAKE, MIN_STAKE, WAGER_PICKS, wager_balance
-
-        match_ids = [m.id for m in matches]
-        if match_ids:
-            for w in (
-                db.query(PointWager)
-                .filter(PointWager.user_id == current_user.id, PointWager.match_id.in_(match_ids))
-                .order_by(PointWager.created_at.desc())
-                .all()
-            ):
-                user_wagers_by_match.setdefault(w.match_id, w)
-        wager_balance_info = wager_balance(db, current_user.id, selected)
-        wager_ctx = {
-            "picks": WAGER_PICKS,
-            "min_stake": MIN_STAKE,
-            "max_stake": MAX_STAKE,
-            "balance": wager_balance_info,
-        }
-    else:
-        wager_ctx = None
-
     return render(
         "index.html",
-        {
-            "categories": categories,
-            "selected_category": selected_category,
-            "selected_category_id": selected,
-            "selected_match_date": selected_date or "",
-            "selected_group": selected_group or "",
-            "available_dates": available_dates,
-            "available_groups": available_groups,
-            "group_summaries": group_summaries,
-            "matches": matches,
-            "stats": stats,
-            "tournament_teams": tournament_teams,
-            "my_champion": my_champion,
-            "champion_open": champion_open,
-            "champion_deadline": champion_deadline,
-            "champion_stats": champion_stats,
-            "match_outcome_stats": match_outcome_stats,
-            "countdown_ms": countdown_ms,
-            "countdown_label": countdown_label,
-            "user_wagers_by_match": user_wagers_by_match,
-            "wager_ctx": wager_ctx,
-        },
+        ctx,
         request=request,
         db=db,
         current_user=current_user,
     )
 
 
-@app.get("/proximamente", response_class=HTMLResponse)
-def puntos_page(
+@app.get("/partials/home-filter", response_class=HTMLResponse, include_in_schema=False)
+def home_filter_partial(
+    request: Request,
+    category_id: Optional[int] = None,
+    match_date: Optional[str] = None,
+    group: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user),
+):
+    from app.home_page import build_home_page_context
+
+    ctx = build_home_page_context(
+        db,
+        current_user,
+        category_id=category_id,
+        match_date=match_date,
+        group=group,
+    )
+    return render(
+        "partials/home_filter_fragment.html",
+        ctx,
+        request=request,
+        db=db,
+        current_user=current_user,
+    )
+
+
+@app.get("/ranking", response_class=HTMLResponse)
+def ranking_page(
     request: Request,
     category_id: Optional[int] = None,
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user),
 ):
-    categories = db.query(Category).filter(Category.is_active.is_(True)).order_by(Category.name).all()
-    selected = category_id or (categories[0].id if categories else None)
-    selected_category = next((c for c in categories if c.id == selected), None)
-    board = leaderboard(db, selected)
-    my_points = user_hamster_points(db, current_user.id, selected) if current_user else None
-    from app.points_rules import rules_dict
+    from app.ranking_page import build_ranking_page_context
 
-    hp_rules = rules_dict(db, selected)
-    countdown_ms = None
-    if selected_category:
-        from app.services import get_tournament_starts_at
-        starts_at = get_tournament_starts_at(db, selected_category)
-        if starts_at:
-            countdown_ms = pet_timestamp_ms(starts_at)
-
-    from app.prize_tiers import get_current_tier
-
-    tier_ctx = get_current_tier(db)
-
+    ctx = build_ranking_page_context(db, current_user, category_id=category_id)
     return render(
-        "proximamente.html",
-        {
-            "categories": categories,
-            "selected_category_id": selected,
-            "selected_category": selected_category,
-            "leaderboard": board,
-            "my_points": my_points,
-            "hp_rules": hp_rules,
-            "countdown_ms": countdown_ms,
-            "current_tier": tier_ctx["current_tier"],
-            "next_tier": tier_ctx["next_tier"],
-            "verified_count": tier_ctx["verified_count"],
-            "progreso": tier_ctx["progreso"],
-            "locked_tiers": tier_ctx["locked_tiers"],
-            "is_max_tier": tier_ctx["is_max_tier"],
-        },
+        "ranking.html",
+        ctx,
         request=request,
         db=db,
         current_user=current_user,
     )
+
+
+@app.get("/proximamente", include_in_schema=False)
+def proximamente_redirect(
+    request: Request,
+    category_id: Optional[int] = None,
+):
+    qs = request.url.query
+    target = "/ranking" + (f"?{qs}" if qs else "")
+    return RedirectResponse(target, status_code=301)
 
 
 @app.get("/privacidad", response_class=HTMLResponse)

@@ -1,0 +1,115 @@
+{% from "macros/team_flag.html" import team_flag %}
+
+{% macro match_card(match, current_user, score_pred, outcome_pred, my_wager, has_mine, outcome, lazy_deferred=false) %}
+<article class="v2-match-card match-card match-row status-{{ match.predictions_status }} {% if not has_mine %}match-row-empty{% endif %}{% if lazy_deferred %} lazy-deferred{% endif %}"
+         {% if lazy_deferred %}aria-hidden="true"{% endif %}
+         data-match-id="{{ match.id }}"
+         data-home="{{ match.home_team }}"
+         data-away="{{ match.away_team }}"
+         data-home-flag="{{ team_flag_url(match.home_team) or '' }}"
+         data-away-flag="{{ team_flag_url(match.away_team) or '' }}"
+         data-meta="{{ format_pet(match.match_date) }}{% if match.group_name %} · Grupo {{ match.group_name }}{% endif %}"
+         {% if score_pred %}
+         data-has-pred="1"
+         data-pred-home="{{ score_pred.predicted_home_score if score_pred.predicted_home_score is not none else 0 }}"
+         data-pred-away="{{ score_pred.predicted_away_score if score_pred.predicted_away_score is not none else 0 }}"
+         {% else %}
+         data-has-pred="0"
+         {% endif %}
+         {% if outcome_pred %}
+         data-has-outcome="1"
+         data-outcome-pick="{{ outcome_pred.outcome_pick }}"
+         data-outcome-result="{{ outcome_pred.result.value }}"
+         {% else %}
+         data-has-outcome="0"
+         {% endif %}
+         {% if my_wager %}
+         data-has-wager="1"
+         data-wager-id="{{ my_wager.id }}"
+         data-wager-pick="{{ my_wager.pick }}"
+         data-wager-stake="{{ my_wager.stake_hp }}"
+         data-wager-status="{{ my_wager.status.value }}"
+         {% else %}
+         data-has-wager="0"
+         {% endif %}
+         data-open="{{ '1' if match.predictions_open else '0' }}"
+         data-cutoff-ms="{{ predictions_cutoff_ms(match) }}"
+         data-official-home="{{ match.home_score if match.home_score is not none else '' }}"
+         data-official-away="{{ match.away_score if match.away_score is not none else '' }}"
+         data-finished="{{ '1' if match.is_finished else '0' }}"
+         {% if outcome.total %}
+         data-pct-total="{{ outcome.total }}"
+         data-pct-home="{{ outcome.home_pct }}"
+         data-pct-draw="{{ outcome.draw_pct }}"
+         data-pct-away="{{ outcome.away_pct }}"
+         {% endif %}>
+
+  <div class="v2-match-meta match-card-header">
+    <div class="match-card-meta">
+      {% if match.group_name %}<span class="group-badge">Grupo {{ match.group_name }}</span>{% endif %}
+      <span class="match-card-datetime">{{ match.match_date.strftime('%d/%m') }} · {{ match.match_date.strftime('%H:%M') }}</span>
+    </div>
+    <span class="match-card-badge match-card-badge--{{ match.predictions_status }}">
+      {% if match.is_finished %}Finalizado{% elif match.predictions_open %}Abierto{% else %}Cerrado{% endif %}
+    </span>
+  </div>
+
+  <div class="v2-match-teams match-card-teams">
+    <div class="v2-team match-card-team">
+      {{ team_flag(match.home_team) }}
+      <span>{{ match.home_team }}</span>
+    </div>
+    <span class="v2-vs match-card-vs">VS</span>
+    <div class="v2-team match-card-team">
+      {{ team_flag(match.away_team, 'away') }}
+      <span>{{ match.away_team }}</span>
+    </div>
+  </div>
+
+  {% if match.is_finished %}
+  <p class="match-card-official">Oficial: <strong>{{ match.home_score }} - {{ match.away_score }}</strong></p>
+  {% endif %}
+
+  <div class="match-card-community pick-action" role="button" tabindex="0" data-open-modal="outcome" aria-label="Ver predicciones 1X2 de la comunidad">
+    <span class="match-card-community-label">Comunidad</span>
+    {% if outcome.total %}
+    <div class="match-outcome-stats" aria-label="Predicciones: local {{ outcome.home_pct }}%, empate {{ outcome.draw_pct }}%, visitante {{ outcome.away_pct }}%">
+      <div class="outcome-bar">
+        {% if outcome.home_pct %}<span class="outcome-seg home" style="width: {{ outcome.home_pct }}%"></span>{% endif %}
+        {% if outcome.draw_pct %}<span class="outcome-seg draw" style="width: {{ outcome.draw_pct }}%"></span>{% endif %}
+        {% if outcome.away_pct %}<span class="outcome-seg away" style="width: {{ outcome.away_pct }}%"></span>{% endif %}
+      </div>
+      <div class="outcome-labels">
+        <span class="outcome-label home" title="Gana local">L {{ outcome.home_pct }}%</span>
+        <span class="outcome-label draw" title="Empate">E {{ outcome.draw_pct }}%</span>
+        <span class="outcome-label away" title="Gana visitante">V {{ outcome.away_pct }}%</span>
+      </div>
+    </div>
+    {% else %}
+    <span class="match-outcome-empty">Sin predicciones aún</span>
+    {% endif %}
+  </div>
+
+  <div class="match-card-picks">
+    <div class="match-card-pick score-slot pick-action {% if current_user and score_pred %}filled{% else %}empty{% endif %}" role="button" tabindex="0" data-open-modal="score" aria-label="Predicción de marcador">
+      <span class="pick-label">Marcador</span>
+      <span class="pick-value">{% if current_user and score_pred %}{{ score_label(score_pred) }}{% else %}<span class="pick-cta">+</span>{% endif %}</span>
+    </div>
+    <div class="match-card-pick outcome-slot pick-action {% if current_user and outcome_pred %}filled{% else %}empty{% endif %}" role="button" tabindex="0" data-open-modal="outcome" aria-label="Predicción 1X2">
+      <span class="pick-label">1X2</span>
+      <span class="pick-value">{% if current_user and outcome_pred %}{{ outcome_pred.outcome_pick }}{% if my_wager and my_wager.status.value == 'pending' %} · {{ my_wager.stake_hp }}HP{% endif %}{% else %}<span class="pick-cta">+</span>{% endif %}</span>
+    </div>
+    <div class="match-card-pick status-slot {% if current_user and has_mine %}filled{% else %}empty{% endif %}">
+      <span class="pick-label">Estado</span>
+      <span class="pick-value">
+        {% if not current_user %}—
+        {% elif not has_mine %}<span class="pick-cta">+</span>
+        {% elif score_pred and score_pred.result == PredictionResult.HIT %}✓
+        {% elif score_pred and score_pred.result == PredictionResult.MISS %}✗
+        {% elif score_pred %}⏳
+        {% else %}—{% endif %}
+      </span>
+    </div>
+  </div>
+</article>
+{% endmacro %}

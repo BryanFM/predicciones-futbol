@@ -1,0 +1,25 @@
+{% macro ranking_leaderboard(leaderboard, current_user) %}
+{% if leaderboard %}
+<ol class="v2-rank-list ranking-full-list">
+  {% for row in leaderboard %}
+  <li class="v2-rank-item {% if current_user and row.user.id == current_user.id %}is-me{% endif %}">
+    <span class="v2-rank-pos {% if loop.index <= 3 %}top{% endif %}">{{ loop.index }}</span>
+    {% if row.user.picture %}
+    <img class="v2-rank-avatar" src="/avatars/{{ row.user.id }}?v=sm" alt="">
+    {% else %}
+    <img class="v2-rank-avatar" src="{{ static_url('hamster-32.png') }}" alt="">
+    {% endif %}
+    <span class="v2-rank-name">{{ row.user.name.split()[0] }}</span>
+    <span class="v2-rank-hp" title="HP totales: {{ row.total }}">
+      {{ row.competitive }} HP
+      {% if row.total != row.competitive %}
+      <small class="ranking-hp-total">({{ row.total }})</small>
+      {% endif %}
+    </span>
+  </li>
+  {% endfor %}
+</ol>
+{% else %}
+<p class="v2-empty">Aún no hay puntos registrados en este torneo.</p>
+{% endif %}
+{% endmacro %}

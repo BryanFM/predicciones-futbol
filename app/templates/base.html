@@ -27,6 +27,10 @@
   <link rel="apple-touch-icon" sizes="180x180" href="{{ static_url('apple-touch-icon.png') }}">
   <link rel="preload" href="{{ static_url('hamster-64.png') }}" as="image" type="image/png" fetchpriority="high">
   <link rel="stylesheet" href="{{ static_url('styles.css') }}">
+  <link rel="stylesheet" href="{{ static_url('v2/dashboard.css') }}">
+  <link rel="stylesheet" href="{{ static_url('app-v2.css') }}">
+  <link rel="stylesheet" href="{{ static_url('pages-v2.css') }}">
+  {% block extra_stylesheets %}{% endblock %}
   {% if GA_MEASUREMENT_ID %}
   <script>
     window.dataLayer = window.dataLayer || [];
@@ -53,7 +57,7 @@
 {% from "macros/user_avatar.html" import user_avatar %}
 {% from "macros/yape_promo_banner.html" import yape_promo_banner %}
 {% from "macros/pre_footer.html" import pre_footer %}
-<body class="layout-sticky-footer">
+<body class="layout-sticky-footer app-v2 {% block body_class %}{% endblock %}">
   <header class="header">
     <div class="container header-inner">
       <a href="/" class="brand">
@@ -66,7 +70,7 @@
         {% set nav_cat = selected_category_id|default(request.query_params.get('category_id', ''), true) %}
         {% if current_user %}
         <a
-          href="/proximamente{% if nav_cat %}?category_id={{ nav_cat }}{% endif %}"
+          href="/ranking{% if nav_cat %}?category_id={{ nav_cat }}{% endif %}"
           class="hamster-points-nav"
           aria-label="Hamster puntos: {{ user_points.total if user_points else 0 }}"
           title="Marcadores: {{ user_points.score_points if user_points else 0 }} · Campeón: {{ user_points.champion_points if user_points else 0 }}"
@@ -76,15 +80,11 @@
           <span class="hp-nav-value">{{ user_points.total if user_points else 0 }}</span>
         </a>
         {% else %}
-        <a href="/proximamente" class="nav-link hamster-points-nav-guest">
+        <a href="/ranking" class="nav-link hamster-points-nav-guest">
           <img src="{{ static_url('hamster-32.png') }}" alt="" class="hp-nav-icon" width="28" height="28" loading="lazy" decoding="async">
           Hamster puntos
         </a>
         {% endif %}
-        <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Cambiar tema" title="Cambiar tema">
-          <span class="theme-icon theme-icon-dark" aria-hidden="true">🌙</span>
-          <span class="theme-icon theme-icon-light" aria-hidden="true">☀️</span>
-        </button>
         {% if current_user %}
         <div class="profile-dropdown" id="profile-menu">
           <button type="button" class="user-chip profile-trigger" aria-expanded="false" aria-haspopup="true">
@@ -128,7 +128,7 @@
                 <span><strong>Verificar celular</strong><small>Obligatorio para participar</small></span>
               </a>
               {% endif %}
-              <a href="/proximamente{% if nav_cat %}?category_id={{ nav_cat }}{% endif %}" class="nav-dropdown-item {% if request.url.path == '/proximamente' %}active{% endif %}">
+              <a href="/ranking{% if nav_cat %}?category_id={{ nav_cat }}{% endif %}" class="nav-dropdown-item {% if request.url.path == '/ranking' %}active{% endif %}">
                 <span class="nav-dropdown-icon nav-dropdown-icon-img">
                   <img src="{{ static_url('hamster-32.png') }}" alt="" width="22" height="22" loading="lazy" decoding="async">
                 </span>
@@ -202,14 +202,16 @@
       </nav>
     </div>
   </header>
-  <main class="container">
+  <main class="{% block main_class %}app-v2-main container{% endblock %}">
     {% if message %}
     <div class="alert alert-success page-flash">{{ message }}</div>
     {% endif %}
     {% if error %}
     <div class="alert alert-error page-flash">{{ error }}</div>
     {% endif %}
+    {% block yape_banner %}
     {{ yape_promo_banner(request, current_user) }}
+    {% endblock %}
     {% block content %}{% endblock %}
   </main>
   {{ pre_footer() }}
