@@ -521,6 +521,7 @@ SUPPORT_INSTAGRAM_HANDLE = os.environ.get("SUPPORT_INSTAGRAM_HANDLE", "@hamsterf
 templates.env.globals["SUPPORT_EMAIL"] = SUPPORT_EMAIL
 templates.env.globals["SUPPORT_INSTAGRAM_URL"] = SUPPORT_INSTAGRAM_URL
 templates.env.globals["SUPPORT_INSTAGRAM_HANDLE"] = SUPPORT_INSTAGRAM_HANDLE
+templates.env.globals["SUPPORT_INSTAGRAM_EXTERNAL"] = SUPPORT_INSTAGRAM_URL.startswith("http")
 
 def _public_env(name: str, *, production_default: str = "") -> str:
     value = os.environ.get(name, "").strip()
