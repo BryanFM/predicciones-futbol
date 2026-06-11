@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <title>{% block title %}Hamster Fijas — UI v2{% endblock %}</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ static_url('favicon-32.png') }}">
+  <link rel="stylesheet" href="{{ static_url('v2/dashboard.css') }}">
+  {% block head_extra %}{% endblock %}
+</head>
+<body class="v2-body">
+  {% block body %}{% endblock %}
+</body>
+</html>

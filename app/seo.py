@@ -26,6 +26,7 @@ NOINDEX_PREFIXES = (
     "/avatars/",
     "/apuestas",
     "/mis-puntos",
+    "/demo/",
 )
 
 

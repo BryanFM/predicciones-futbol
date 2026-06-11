@@ -24,7 +24,7 @@ from app.rendering import render, render_error_page, static_url, templates
 
 BASE_DIR = Path(__file__).resolve().parent
 
-from app.routers import account, admin, referrals, verify, wagers, yape
+from app.routers import account, admin, referrals, verify, wagers, v2_demo, yape
 
 app = FastAPI(title="Hamster Fijas")
 app.include_router(verify.router)
@@ -33,6 +33,7 @@ app.include_router(admin.router)
 app.include_router(yape.router)
 app.include_router(referrals.router)
 app.include_router(wagers.router)
+app.include_router(v2_demo.router)
 
 
 class NoCacheHTMLMiddleware(BaseHTTPMiddleware):

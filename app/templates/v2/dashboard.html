@@ -1,0 +1,194 @@
+{% extends "v2/base.html" %}
+
+{% block title %}Hamster Fijas — Dashboard v2 (demo){% endblock %}
+
+{% block body %}
+<div class="v2-shell">
+  <div class="v2-demo-banner">
+    <span>🎨 <strong>Plantilla UI v2</strong> — vista de demostración estática. No afecta la app en producción.</span>
+    <a href="/">← Volver al sitio actual</a>
+  </div>
+
+  <header class="v2-topbar">
+    <div class="v2-topbar-row">
+      <a href="/" class="v2-brand-mobile">
+        <img src="{{ static_url('hamster-32.png') }}" alt="" width="28" height="28">
+        <span>Hamster Fijas</span>
+      </a>
+      <div class="v2-topbar-actions">
+        <span class="v2-streak-pill" title="Racha activa">🔥 {{ demo.streak }}</span>
+        <button type="button" class="v2-bell" aria-label="Notificaciones">
+          🔔
+          <span class="v2-bell-badge">3</span>
+        </button>
+        <div class="v2-user-chip">
+          <img src="{{ static_url('hamster-64.png') }}" alt="" width="34" height="34">
+          <div class="v2-user-chip-text">
+            <div class="v2-user-name">{{ demo.user_name }}</div>
+            <div class="v2-user-level">Nivel {{ demo.level }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <nav class="v2-nav" aria-label="Principal">
+      <a href="#" class="v2-nav-link is-active"><span class="v2-nav-icon">🏠</span> Inicio</a>
+      <a href="#" class="v2-nav-link"><span class="v2-nav-icon">⚽</span> Partidos</a>
+      <a href="#" class="v2-nav-link"><span class="v2-nav-icon">🏆</span> Rankings</a>
+      <a href="#" class="v2-nav-link"><span class="v2-nav-icon">👥</span> Ligas</a>
+      <a href="#" class="v2-nav-link"><span class="v2-nav-icon">💬</span> Chat</a>
+      <a href="#" class="v2-nav-link"><span class="v2-nav-icon">🌍</span> Torneos</a>
+    </nav>
+  </header>
+
+  <div class="v2-layout">
+    <main class="v2-main">
+      <section class="v2-hero">
+        <div class="v2-hero-content">
+          <p class="v2-hero-kicker">Mundial 2026</p>
+          <h1 class="v2-hero-title">COMPITE. ACERTA. GANA.<br>DEMUESTRA QUIÉN SABE MÁS DE FÚTBOL.</h1>
+        </div>
+        <img src="{{ static_url('hamster-80.png') }}" alt="" class="v2-hero-mascot" width="120" height="120">
+      </section>
+
+      <section>
+        <div class="v2-section-head">
+          <h2 class="v2-section-title">Próximos partidos</h2>
+          <a href="#" class="v2-link-sm">Ver calendario →</a>
+        </div>
+        <div class="v2-matches-scroll" tabindex="0" aria-label="Desliza para ver más partidos">
+          {% for m in demo.matches %}
+          <article class="v2-match-card">
+            <div class="v2-match-meta">
+              <span>{{ m.group }}</span>
+              <span>{{ m.time }}</span>
+            </div>
+            <div class="v2-match-teams">
+              <div class="v2-team">
+                <span class="v2-flag">{{ m.home_flag }}</span>
+                <span>{{ m.home }}</span>
+              </div>
+              <span class="v2-vs">VS</span>
+              <div class="v2-team">
+                <span class="v2-flag">{{ m.away_flag }}</span>
+                <span>{{ m.away }}</span>
+              </div>
+            </div>
+            <p class="v2-prediction-tag">Tu predicción: <strong>{{ m.prediction }}</strong></p>
+            <button type="button" class="v2-btn-primary">Predecir</button>
+          </article>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section>
+        <div class="v2-section-head">
+          <h2 class="v2-section-title">Tu resumen</h2>
+        </div>
+        <div class="v2-stats-grid">
+          <div class="v2-stat-card">
+            <div class="v2-stat-label">Ranking</div>
+            <div class="v2-stat-value">#{{ demo.rank }}</div>
+            <div class="v2-stat-delta">↑ +4 esta semana</div>
+          </div>
+          <div class="v2-stat-card">
+            <div class="v2-stat-label">Puntos totales</div>
+            <div class="v2-stat-value">{{ demo.points }} HP</div>
+            <div class="v2-sparkline" aria-hidden="true"></div>
+          </div>
+          <div class="v2-stat-card">
+            <div class="v2-stat-label">Racha</div>
+            <div class="v2-stat-value">🔥 {{ demo.streak }}</div>
+          </div>
+          <div class="v2-stat-card">
+            <div class="v2-stat-label">Precisión</div>
+            <div class="v2-stat-value">{{ demo.accuracy }}%</div>
+            <div class="v2-ring" style="--pct: {{ demo.accuracy }}" aria-hidden="true"></div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="v2-section-head">
+          <h2 class="v2-section-title">Predicciones de la comunidad</h2>
+        </div>
+        <div class="v2-community-grid">
+          <div class="v2-community-card">
+            <h4>Resultado más elegido</h4>
+            {% for row in demo.community_outcomes %}
+            <div class="v2-bar-row">
+              <span>{{ row.label }}</span>
+              <div class="v2-bar-track"><span class="v2-bar-fill gold" style="width: {{ row.pct }}%"></span></div>
+              <span>{{ row.pct }}%</span>
+            </div>
+            {% endfor %}
+          </div>
+          <div class="v2-community-card">
+            <h4>Marcador favorito</h4>
+            {% for row in demo.community_scores %}
+            <div class="v2-bar-row">
+              <span>{{ row.label }}</span>
+              <div class="v2-bar-track"><span class="v2-bar-fill" style="width: {{ row.pct }}%"></span></div>
+              <span>{{ row.pct }}%</span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <aside class="v2-sidebar">
+      <section class="v2-panel">
+        <div class="v2-section-head">
+          <h2 class="v2-section-title">Top mundial</h2>
+        </div>
+        <ol class="v2-rank-list">
+          {% for u in demo.leaderboard %}
+          <li class="v2-rank-item {% if u.is_me %}is-me{% endif %}">
+            <span class="v2-rank-pos {% if loop.index <= 3 %}top{% endif %}">{{ u.rank }}</span>
+            <img class="v2-rank-avatar" src="{{ static_url('hamster-64.png') if u.is_me else static_url('hamster-32.png') }}" alt="">
+            <span class="v2-rank-name">{{ u.name }}</span>
+            <span class="v2-rank-hp">{{ u.hp }} HP</span>
+          </li>
+          {% endfor %}
+        </ol>
+      </section>
+
+      <section class="v2-panel">
+        <div class="v2-section-head">
+          <h2 class="v2-section-title">Tus amigos</h2>
+        </div>
+        {% for f in demo.friends %}
+        <div class="v2-friend-item">
+          <img class="v2-rank-avatar" src="{{ static_url('hamster-32.png') }}" alt="">
+          <div class="v2-friend-meta">
+            <div class="v2-rank-name">{{ f.name }}</div>
+            <div class="v2-friend-league">Liga: {{ f.league }}</div>
+          </div>
+          <span class="v2-rank-hp">{{ f.hp }} HP</span>
+        </div>
+        {% endfor %}
+        <a href="/referidos" class="v2-btn-purple" style="margin-top: 0.75rem">+ Invitar amigos</a>
+      </section>
+
+      <section class="v2-panel">
+        <div class="v2-section-head">
+          <h2 class="v2-section-title">Logros recientes</h2>
+        </div>
+        <div class="v2-achievements">
+          {% for a in demo.achievements %}
+          <div class="v2-achievement" title="{{ a.label }}">{{ a.icon }}</div>
+          {% endfor %}
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <nav class="v2-bottom-nav" aria-label="Accesos rápidos móvil">
+    <a href="#" class="v2-bottom-nav-item is-active"><span>🏠</span><small>Inicio</small></a>
+    <a href="#" class="v2-bottom-nav-item"><span>⚽</span><small>Partidos</small></a>
+    <a href="#" class="v2-bottom-nav-item"><span>🏆</span><small>Ranking</small></a>
+    <a href="/referidos" class="v2-bottom-nav-item"><span>👥</span><small>Amigos</small></a>
+    <a href="/" class="v2-bottom-nav-item"><span>↩</span><small>Sitio</small></a>
+  </nav>
+</div>
+{% endblock %}
