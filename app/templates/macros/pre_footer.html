@@ -1,0 +1,65 @@
+{% macro pre_footer() %}
+<section class="pre-footer" id="contacto" aria-labelledby="pre-footer-contact-title">
+  <div class="container pre-footer-grid">
+    <div class="pre-footer-contact">
+      <h2 class="pre-footer-title" id="pre-footer-contact-title">Contáctanos</h2>
+      <ul class="pre-footer-contact-list">
+        <li class="pre-footer-contact-item">
+          <span class="pre-footer-icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+          </span>
+          <p>Escríbenos a <a href="{{ SUPPORT_INSTAGRAM_URL }}" target="_blank" rel="noopener noreferrer">{{ SUPPORT_INSTAGRAM_HANDLE }}</a></p>
+        </li>
+        <li class="pre-footer-contact-item">
+          <span class="pre-footer-icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="20" height="16" x="2" y="4" rx="2"></rect>
+              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+            </svg>
+          </span>
+          <p>
+            Escríbenos a:
+            <a href="mailto:{{ SUPPORT_EMAIL }}" class="pre-footer-mail">{{ SUPPORT_EMAIL }}</a>
+          </p>
+        </li>
+        <li class="pre-footer-hours">
+          Horario: L-V de 9 a 6pm · Sáb. de 9am a 2pm
+        </li>
+      </ul>
+      <p class="pre-footer-faq-link pre-footer-faq-link-desktop">
+        <span class="pre-footer-icon pre-footer-icon-inline" aria-hidden="true">?</span>
+        ¿Dudas? Revisa <a href="/preguntas-frecuentes">Preguntas frecuentes</a>.
+      </p>
+    </div>
+
+    <div class="pre-footer-faq-preview">
+      <h3 class="pre-footer-faq-preview-title">Preguntas frecuentes</h3>
+      <article class="faq-item faq-item-compact">
+        <h4 class="faq-question">¿Cómo me contactan si soy ganador?</h4>
+        <div class="faq-answer">
+          <p>
+            Usaremos el correo y teléfono que dejaste al registrarte. Si ganas, te enviaremos un correo
+            para tu validación biométrica dentro de las 72 horas (lunes a viernes). Una vez validado,
+            nuestro equipo te escribirá por WhatsApp para coordinar la entrega de tu premio.
+          </p>
+        </div>
+      </article>
+      <article class="faq-item faq-item-compact">
+        <h4 class="faq-question">¿Por qué debo verificar mi celular?</h4>
+        <div class="faq-answer">
+          <p>
+            La verificación por SMS confirma que eres una persona real y evita cuentas duplicadas.
+            Solo con el celular verificado puedes registrar predicciones, apostar Hamster puntos e invitar referidos.
+          </p>
+        </div>
+      </article>
+      <p class="pre-footer-faq-more">
+        <a href="/preguntas-frecuentes">Ver todas las preguntas →</a>
+      </p>
+    </div>
+  </div>
+</section>
+{% endmacro %}

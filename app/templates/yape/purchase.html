@@ -29,10 +29,15 @@
         {% else %}
         Abre Yape y paga el <strong>monto exacto</strong> del pack elegido.
         {% endif %}
+        Antes de confirmar, verifica que el nombre del destinatario sea exactamente <strong>{{ YAPE_RECIPIENT_NAME }}</strong>.
       </li>
       <li>Copia el <strong>código de operación</strong> que aparece en tu app Yape.</li>
       <li>Completa el formulario y espera la aprobación (normalmente en pocas horas).</li>
     </ol>
+    <p class="yape-name-requirement">
+      El nombre en Yape del destinatario debe ser <strong>{{ YAPE_RECIPIENT_NAME }}</strong>.
+      Si ves otro nombre, no completes el pago.
+    </p>
     {% if yape_qr_available %}
     <figure class="yape-qr-panel">
       <img
@@ -97,7 +102,7 @@
 
     <label class="yape-field">
       Nota opcional
-      <input type="text" name="user_note" maxlength="255" placeholder="Nombre en Yape, hora del pago, etc.">
+      <input type="text" name="user_note" maxlength="255" placeholder="Hora del pago, etc. (el nombre debe ser {{ YAPE_RECIPIENT_NAME }})">
     </label>
 
     <div class="yape-form-actions">

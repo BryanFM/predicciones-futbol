@@ -172,6 +172,7 @@ def sitemap_xml(request: Request, db: Session = Depends(get_db)):
         ("/proximamente", "weekly", "0.8", None),
         ("/privacidad", "monthly", "0.4", None),
         ("/terminos", "monthly", "0.4", None),
+        ("/preguntas-frecuentes", "monthly", "0.5", None),
     ]
     urls: list[str] = []
     for path, changefreq, priority, lastmod in static_routes:
@@ -472,10 +473,22 @@ templates.env.globals["CHAMPION_HIT_POINTS"] = CHAMPION_HIT_POINTS
 templates.env.globals["PredictionResult"] = PredictionResult
 templates.env.globals["PredictionType"] = PredictionType
 
-from app.yape_policy import YAPE_PACKAGES, yape_payments_enabled
+from app.yape_policy import YAPE_PACKAGES, YAPE_RECIPIENT_NAME, yape_payments_enabled
 
 templates.env.globals["YAPE_PAYMENTS_ENABLED"] = yape_payments_enabled()
 templates.env.globals["YAPE_PACKAGES"] = YAPE_PACKAGES
+templates.env.globals["YAPE_RECIPIENT_NAME"] = YAPE_RECIPIENT_NAME
+
+SUPPORT_EMAIL = os.environ.get("SUPPORT_EMAIL", "soporte@nohaysinsuerte.com").strip() or "soporte@nohaysinsuerte.com"
+SUPPORT_INSTAGRAM_URL = os.environ.get(
+    "SUPPORT_INSTAGRAM_URL", "https://www.instagram.com/nohaysinsuerteoficial/"
+).strip() or "https://www.instagram.com/nohaysinsuerteoficial/"
+SUPPORT_INSTAGRAM_HANDLE = os.environ.get("SUPPORT_INSTAGRAM_HANDLE", "@nohaysinsuerte").strip() or "@nohaysinsuerte"
+
+templates.env.globals["SUPPORT_EMAIL"] = SUPPORT_EMAIL
+templates.env.globals["SUPPORT_INSTAGRAM_URL"] = SUPPORT_INSTAGRAM_URL
+templates.env.globals["SUPPORT_INSTAGRAM_HANDLE"] = SUPPORT_INSTAGRAM_HANDLE
+
 def _public_env(name: str, *, production_default: str = "") -> str:
     value = os.environ.get(name, "").strip()
     if value:
@@ -756,6 +769,15 @@ def terms_page(
     current_user: Optional[User] = Depends(get_current_user),
 ):
     return render("terminos.html", {}, request=request, db=db, current_user=current_user)
+
+
+@app.get("/preguntas-frecuentes", response_class=HTMLResponse)
+def faq_page(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user),
+):
+    return render("preguntas_frecuentes.html", {}, request=request, db=db, current_user=current_user)
 
 
 @app.get("/partidos/{match_id}", response_class=HTMLResponse)

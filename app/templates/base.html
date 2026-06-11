@@ -52,6 +52,7 @@
 </head>
 {% from "macros/user_avatar.html" import user_avatar %}
 {% from "macros/yape_promo_banner.html" import yape_promo_banner %}
+{% from "macros/pre_footer.html" import pre_footer %}
 <body class="layout-sticky-footer">
   <header class="header">
     <div class="container header-inner">
@@ -215,10 +216,12 @@
     {{ yape_promo_banner(request, current_user) }}
     {% block content %}{% endblock %}
   </main>
+  {{ pre_footer() }}
   <footer class="site-footer">
     <div class="container site-footer-inner">
-      <span class="site-footer-brand">© 2026 Hamster Fijas</span>
+      <span class="site-footer-brand">© 2026 Hamster Fijas - Todos los derechos reservados</span>
       <nav class="site-footer-links" aria-label="Legal">
+        <a href="/preguntas-frecuentes" class="site-footer-link">Preguntas frecuentes</a>
         <a href="/privacidad" class="site-footer-link">Política de Privacidad</a>
         <a href="/terminos" class="site-footer-link">Términos y Condiciones</a>
       </nav>

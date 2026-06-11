@@ -32,6 +32,7 @@ YAPE_PACKAGES: list[dict] = [
 
 MAX_PENDING_REQUESTS = 2
 OPERATION_CODE_RE = re.compile(r"^[A-Za-z0-9]{6,14}$")
+YAPE_RECIPIENT_NAME = os.environ.get("YAPE_RECIPIENT_NAME", "Bryan Flo***").strip() or "Bryan Flo***"
 
 
 def yape_payments_enabled() -> bool:

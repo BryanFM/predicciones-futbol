@@ -3680,6 +3680,7 @@ video.lazy-loaded {
   flex-wrap: wrap;
 }
 
+body.cookie-banner-open .pre-footer,
 body.cookie-banner-open .site-footer {
   padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
 }
@@ -3752,6 +3753,201 @@ body.cookie-banner-open .site-footer {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* ── Pre-footer (contacto + FAQ) ─────────────────────────────────────────── */
+.pre-footer {
+  flex-shrink: 0;
+  margin-top: auto;
+  border-top: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(206, 131, 253, 0.06) 0%, var(--bg) 100%);
+  padding: 2rem 0 1.5rem;
+}
+
+.pre-footer-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+}
+
+@media (min-width: 768px) {
+  .pre-footer-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 2.5rem;
+    align-items: start;
+  }
+}
+
+.pre-footer-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 1rem;
+}
+
+.pre-footer-contact-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.pre-footer-contact-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  font-size: 0.92rem;
+  color: var(--text);
+}
+
+.pre-footer-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  flex-shrink: 0;
+  color: var(--primary);
+}
+
+.pre-footer-icon-inline {
+  width: auto;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.pre-footer-contact-item a,
+.pre-footer-mail {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.pre-footer-contact-item a:hover,
+.pre-footer-mail:hover {
+  opacity: 0.85;
+}
+
+.pre-footer-hours {
+  font-size: 0.85rem;
+  color: var(--muted);
+  padding-left: calc(26px + 0.6rem);
+}
+
+.pre-footer-faq-link {
+  margin: 1rem 0 0;
+  font-size: 0.9rem;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pre-footer-faq-link-desktop {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .pre-footer-faq-link-desktop {
+    display: flex;
+  }
+}
+
+.pre-footer-faq-preview-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.75rem;
+}
+
+.faq-item {
+  margin-bottom: 1.5rem;
+}
+
+.faq-item-compact {
+  margin-bottom: 0.75rem;
+}
+
+.faq-question {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: rgb(206, 131, 253);
+  margin: 0 0 0.75rem;
+  line-height: 1.35;
+}
+
+@media (min-width: 768px) {
+  .faq-question {
+    font-size: 1.125rem;
+  }
+}
+
+.faq-answer {
+  padding-left: 1rem;
+  font-size: 0.8125rem;
+  color: var(--text);
+  line-height: 1.6;
+  opacity: 0.92;
+}
+
+@media (min-width: 768px) {
+  .faq-answer {
+    font-size: 1rem;
+  }
+}
+
+.faq-answer p {
+  margin: 0 0 0.75rem;
+}
+
+.faq-answer p:last-child {
+  margin-bottom: 0;
+}
+
+.faq-answer a {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.pre-footer-faq-more {
+  margin: 0.5rem 0 0;
+  font-size: 0.88rem;
+}
+
+.pre-footer-faq-more a {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.pre-footer-faq-more a:hover {
+  text-decoration: underline;
+}
+
+.faq-page .faq-list {
+  margin-top: 0.5rem;
+}
+
+.faq-page .faq-item {
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.faq-page .faq-item:last-child {
+  border-bottom: none;
+}
+
+.faq-back-link {
+  margin-top: 2rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.faq-back-link a {
+  color: var(--primary);
 }
 
 /* ── Footer ─────────────────────────────────────────────────────────────── */
@@ -4114,6 +4310,21 @@ body.cookie-banner-open .site-footer {
   color: var(--text-muted);
   margin: 0;
 }
+
+.yape-name-requirement {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(123, 44, 191, 0.35);
+  background: rgba(123, 44, 191, 0.08);
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.yape-name-requirement strong {
+  color: var(--primary);
+}
+
 .yape-packages{
   border: 0;
 }

@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Preguntas frecuentes — Hamster Fijas{% endblock %}
+{% block meta_description %}Respuestas a dudas sobre Hamster Fijas: contacto, premios, verificación de celular y Hamster puntos.{% endblock %}
+
+{% block content %}
+<div class="legal-page faq-page">
+  <h2 class="legal-title">Preguntas frecuentes</h2>
+  <p class="legal-updated">Hamster Fijas — Mundial 2026</p>
+
+  <section class="faq-list">
+    <article class="faq-item">
+      <h3 class="faq-question">¿Cómo me contactan si soy ganador?</h3>
+      <div class="faq-answer">
+        <p>
+          Usaremos el correo de tu cuenta de Google y el celular que verificaste en la plataforma.
+          Si ganas un premio o sorteo, te enviaremos un correo para tu validación biométrica dentro de las
+          <strong>72 horas hábiles</strong> (lunes a viernes). Una vez validado, nuestro equipo te escribirá
+          por WhatsApp para coordinar la entrega de tu premio.
+        </p>
+        <p>
+          También anunciaremos ganadores en vivo por nuestras redes oficiales de TikTok e Instagram,
+          según lo indicado en los <a href="/terminos">Términos y Condiciones</a>.
+        </p>
+      </div>
+    </article>
+
+    <article class="faq-item">
+      <h3 class="faq-question">¿Por qué debo verificar mi celular?</h3>
+      <div class="faq-answer">
+        <p>
+          La verificación por SMS confirma que eres una persona real y evita cuentas duplicadas.
+          Solo con el celular verificado puedes registrar predicciones, apostar Hamster puntos,
+          invitar referidos y participar en sorteos.
+        </p>
+        <p>
+          Si aún no lo hiciste, entra a
+          {% if current_user %}
+          <a href="/verificar-telefono">Verificar celular</a>.
+          {% else %}
+          <a href="/auth/login">Iniciar sesión</a> y luego verifica tu número.
+          {% endif %}
+        </p>
+      </div>
+    </article>
+
+    <article class="faq-item">
+      <h3 class="faq-question">¿Cómo compro Hamster puntos con Yape?</h3>
+      <div class="faq-answer">
+        <p>
+          Entra a <a href="/comprar-yape">Comprar HP con Yape</a>, elige un pack, escanea el QR oficial
+          y confirma que el nombre del destinatario sea <strong>{{ YAPE_RECIPIENT_NAME }}</strong>.
+          Luego envía el código de operación; un admin verificará tu pago y acreditará los puntos.
+        </p>
+      </div>
+    </article>
+  </section>
+
+  <p class="faq-back-link">
+    ¿Necesitas más ayuda? Revisa la sección <a href="/#contacto">Contáctanos</a> al pie del sitio.
+  </p>
+</div>
+{% endblock %}
