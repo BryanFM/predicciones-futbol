@@ -4,11 +4,10 @@ from __future__ import annotations
 
 import hmac
 import secrets
-from typing import Optional
+from typing import Awaitable, Callable, Optional
 
 from fastapi import Request
 from fastapi.responses import JSONResponse, RedirectResponse
-from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
 from app.hf_response import wants_ajax
@@ -75,16 +74,19 @@ def csrf_failed_response(request: Request) -> Response:
     return RedirectResponse("/", status_code=303)
 
 
-class CSRFMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request, call_next):
-        if request.method in ("GET", "HEAD", "OPTIONS"):
-            ensure_csrf_token(request)
-            return await call_next(request)
-
-        if request.method == "POST" and not is_csrf_exempt(request.url.path):
-            expected = request.session.get("csrf_token")
-            submitted = await _submitted_token(request)
-            if not _safe_equal(submitted, expected):
-                return csrf_failed_response(request)
-
+async def csrf_middleware(
+    request: Request,
+    call_next: Callable[[Request], Awaitable[Response]],
+) -> Response:
+    """Middleware HTTP (no BaseHTTPMiddleware) para no romper el body de formularios."""
+    if request.method in ("GET", "HEAD", "OPTIONS"):
+        ensure_csrf_token(request)
         return await call_next(request)
+
+    if request.method == "POST" and not is_csrf_exempt(request.url.path):
+        expected = request.session.get("csrf_token")
+        submitted = await _submitted_token(request)
+        if not _safe_equal(submitted, expected):
+            return csrf_failed_response(request)
+
+    return await call_next(request)

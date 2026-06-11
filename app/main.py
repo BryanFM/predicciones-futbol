@@ -17,7 +17,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app.avatars import avatar_url as avatar_url_for_user, fetch_avatar, is_allowed_avatar_url
 from app.auth import get_current_user, oauth, require_admin, require_login, require_verified, upsert_user
-from app.csrf import CSRFMiddleware, csrf_token
+from app.csrf import csrf_middleware, csrf_token
 from app.database import Base, engine, get_db
 from app.hf_response import ajax_error, ajax_or_redirect, safe_back, wants_ajax
 from app.models import Category, ChampionPrediction, Match, Prediction, PredictionResult, PredictionType, User
@@ -43,6 +43,11 @@ app.include_router(admin.router)
 app.include_router(yape.router)
 app.include_router(referrals.router)
 app.include_router(wagers.router)
+
+
+@app.middleware("http")
+async def _csrf_middleware(request: Request, call_next):
+    return await csrf_middleware(request, call_next)
 
 
 class NoCacheHTMLMiddleware(BaseHTTPMiddleware):
@@ -106,7 +111,6 @@ class CanonicalHostMiddleware(BaseHTTPMiddleware):
 app.add_middleware(ReferralCaptureMiddleware)
 app.add_middleware(NoCacheHTMLMiddleware)
 app.add_middleware(StaticCacheMiddleware)
-app.add_middleware(CSRFMiddleware)
 app.add_middleware(RateLimitMiddleware)
 app.add_middleware(
     SessionMiddleware,
@@ -249,12 +253,27 @@ async def hf_not_found_handler(request: Request, exc: StarletteHTTPException):
     return await _html_http_error(request, 404, getattr(exc, "detail", "Not Found"))
 
 
+@app.exception_handler(RequestValidationError)
+async def hf_validation_handler(request: Request, exc: RequestValidationError):
+    if wants_ajax(request):
+        return JSONResponse(
+            {"ok": False, "error": "Datos del formulario incompletos.", "detail": exc.errors()},
+            status_code=422,
+        )
+    if request.method == "POST":
+        from app.flash import flash
+
+        flash(request, error="Datos del formulario incompletos. Inténtalo de nuevo.")
+        referer = request.headers.get("referer", "")
+        if referer.startswith("/") and not referer.startswith("//"):
+            return RedirectResponse(referer, status_code=303)
+    return await request_validation_exception_handler(request, exc)
+
+
 @app.exception_handler(Exception)
 async def hf_unhandled_exception_handler(request: Request, exc: Exception):
     if isinstance(exc, HTTPException):
         raise exc
-    if isinstance(exc, RequestValidationError):
-        return await request_validation_exception_handler(request, exc)
     if wants_ajax(request):
         return JSONResponse(
             {"ok": False, "error": "Error interno del servidor"},
