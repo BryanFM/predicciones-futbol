@@ -8,7 +8,8 @@ services:
     runtime: python
     branch: master
     buildCommand: python -m pip install --upgrade pip && pip install --default-timeout=120 --retries=5 -r requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    preDeployCommand: python scripts/render-predeploy.py
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --timeout-keep-alive 75
     healthCheckPath: /health
     envVars:
       - key: DATABASE_URL

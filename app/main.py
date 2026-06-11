@@ -268,8 +268,9 @@ def on_startup():
     templates.env.globals["YAPE_PAYMENTS_ENABLED"] = yape_payments_enabled()
     templates.env.globals["SORTEO_POPUP_ENABLED"] = sorteo_popup_enabled()
     _validate_oauth_config()
-    logging.getLogger("uvicorn.error").info("Arrancando bootstrap de BD en segundo plano…")
-    threading.Thread(target=_database_bootstrap, daemon=True, name="db-bootstrap").start()
+    if os.environ.get("ENVIRONMENT", "").lower() != "production":
+        logging.getLogger("uvicorn.error").info("Arrancando bootstrap de BD en segundo plano…")
+        threading.Thread(target=_database_bootstrap, daemon=True, name="db-bootstrap").start()
 
 
 def _database_bootstrap() -> None:
