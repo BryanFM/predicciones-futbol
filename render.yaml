@@ -7,7 +7,7 @@ services:
     name: predicciones-futbol
     runtime: python
     branch: master
-    buildCommand: python -m pip install --upgrade pip && pip install --default-timeout=120 --retries=5 -r requirements.txt
+    buildCommand: python -m pip install --upgrade pip && pip install --default-timeout=120 --retries=5 -r requirements.txt && python -c "from app.main import app; assert '/demo/v2' in [getattr(r, 'path', None) for r in app.routes], 'Ruta /demo/v2 no registrada'"
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:

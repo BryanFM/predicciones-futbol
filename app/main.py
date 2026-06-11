@@ -111,7 +111,11 @@ app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    commit = os.environ.get("RENDER_GIT_COMMIT", "").strip()
+    payload: dict = {"status": "ok"}
+    if commit:
+        payload["commit"] = commit[:7]
+    return payload
 
 
 @app.get("/favicon.ico", include_in_schema=False)

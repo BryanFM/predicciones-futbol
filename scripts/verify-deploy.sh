@@ -12,7 +12,12 @@ else
 fi
 
 echo "→ Importando app (ENVIRONMENT=production)…"
-ENVIRONMENT=production HTTPS_ONLY=true "$PYTHON" -c "from app.main import app; assert app.title"
+ENVIRONMENT=production HTTPS_ONLY=true "$PYTHON" -c "
+from app.main import app
+assert app.title
+paths = [getattr(r, 'path', None) for r in app.routes]
+assert '/demo/v2' in paths, f'Falta /demo/v2 en rutas: {paths!r}'
+"
 
 echo "→ OK — listo para deploy en Render"
 echo "  Push a master → auto-deploy si está activado"
